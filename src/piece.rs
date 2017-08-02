@@ -1,6 +1,6 @@
 use *;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Piece {
 	King(bool),
 	Queen(bool),
@@ -125,12 +125,13 @@ impl Piece {
 						break;
 					}
 
+					if !recursive || !board[abs.1 as usize][abs.0 as usize].is_empty() {
+						break;
+					}
+
 					new_x += rel_x;
 					new_y += rel_y;
 
-					if !recursive {
-						break;
-					}
 				}
 			}
 		}

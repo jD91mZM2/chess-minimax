@@ -131,7 +131,12 @@ fn main() {
 				let pos = parse_pos!(&args[0]);
 				let (x, y) = pos;
 
-				let possible   = board[y as usize][x as usize].possible_moves(&board, pos);
+				let possible = board[y as usize][x as usize].possible_moves(&board, pos);
+				if possible.is_empty() {
+					println!("No possible moves");
+					continue;
+				}
+
 				let mut output = String::with_capacity(possible.len() * 4 - 2);
 				let mut first  = true;
 
