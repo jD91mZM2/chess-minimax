@@ -1,0 +1,4 @@
+[root]
+name = "crappy-chess-minimax"
+version = "0.1.0"
+
