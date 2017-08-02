@@ -1,11 +1,11 @@
 use *;
 
-macro_rules! your {
+macro_rules! white {
 	($name:ident) => {
 		Piece::$name(false)
 	}
 }
-macro_rules! mine {
+macro_rules! black {
 	($name:ident) => {
 		Piece::$name(true)
 	}
@@ -33,13 +33,13 @@ pub fn board_string(board: &Board) -> String {
 
 pub fn make_board() -> Board {
 	[
-		[ your!(Rook), your!(Knight), your!(Bishop), your!(King), your!(Queen), your!(Bishop), your!(Knight), your!(Rook) ],
-		[ your!(Pawn), your!(Pawn),   your!(Pawn),   your!(Pawn), your!(Pawn),  your!(Pawn),   your!(Pawn),   your!(Pawn) ],
-		[ none!(),     none!(),       none!(),       none!(),     none!(),      none!(),       none!(),       none!()     ],
-		[ none!(),     none!(),       none!(),       none!(),     none!(),      none!(),       none!(),       none!()     ],
-		[ none!(),     none!(),       none!(),       none!(),     none!(),      none!(),       none!(),       none!()     ],
-		[ none!(),     none!(),       none!(),       none!(),     none!(),      none!(),       none!(),       none!()     ],
-		[ mine!(Pawn), mine!(Pawn),   mine!(Pawn),   mine!(Pawn), mine!(Pawn),  mine!(Pawn),   mine!(Pawn),   mine!(Pawn) ],
-		[ mine!(Rook), mine!(Knight), mine!(Bishop), mine!(King), mine!(Queen), mine!(Bishop), mine!(Knight), mine!(Rook) ],
+		[ white!(Rook), white!(Knight), white!(Bishop), white!(King), white!(Queen), white!(Bishop), white!(Knight), white!(Rook) ],
+		[ white!(Pawn), white!(Pawn),   white!(Pawn),   white!(Pawn), white!(Pawn),  white!(Pawn),   white!(Pawn),   white!(Pawn) ],
+		[ none!(),      none!(),        none!(),        none!(),      none!(),       none!(),        none!(),        none!()      ],
+		[ none!(),      none!(),        none!(),        none!(),      none!(),       none!(),        none!(),        none!()      ],
+		[ none!(),      none!(),        none!(),        none!(),      none!(),       none!(),        none!(),        none!()      ],
+		[ none!(),      none!(),        none!(),        none!(),      none!(),       none!(),        none!(),        none!()      ],
+		[ black!(Pawn), black!(Pawn),   black!(Pawn),   black!(Pawn), black!(Pawn),  black!(Pawn),   black!(Pawn),   black!(Pawn) ],
+		[ black!(Rook), black!(Knight), black!(Bishop), black!(King), black!(Queen), black!(Bishop), black!(Knight), black!(Rook) ],
 	]
 }
