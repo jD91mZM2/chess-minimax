@@ -19,9 +19,12 @@ macro_rules! none {
 pub type Board = [[Piece; 8]; 8];
 
 pub fn board_string(board: &Board) -> String {
-	let mut output = String::with_capacity(8 * 8 + 8); // width * height + newlines
+	let mut output = String::with_capacity(8 * 9 + (9 + 2 + 1)); // width * height + (height + index + newline)
 
-	for row in board {
+	output.push_str("  ABCDEFGH\n");
+	for (i, row) in board.iter().enumerate() {
+		output.push_str(&(i + 1).to_string());
+		output.push(' ');
 		for col in row {
 			output.push(col.to_char());
 		}

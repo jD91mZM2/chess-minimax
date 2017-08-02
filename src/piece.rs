@@ -1,5 +1,6 @@
 use *;
 
+#[derive(Clone)]
 pub enum Piece {
 	King(bool),
 	Queen(bool),
