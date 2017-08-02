@@ -1,22 +1,22 @@
-use ::Part;
+use *;
 
 macro_rules! your {
 	($name:ident) => {
-		Part::$name(false)
+		Piece::$name(false)
 	}
 }
 macro_rules! mine {
 	($name:ident) => {
-		Part::$name(true)
+		Piece::$name(true)
 	}
 }
 macro_rules! none {
 	() => {
-		Part::Empty
+		Piece::Empty
 	}
 }
 
-type Board = [[Part; 8]; 8];
+pub type Board = [[Piece; 8]; 8];
 
 pub fn board_string(board: &Board) -> String {
 	let mut output = String::with_capacity(8 * 8 + 8); // width * height + newlines
