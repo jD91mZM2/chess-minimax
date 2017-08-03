@@ -50,9 +50,25 @@ pub fn rotate(rel: (i8, i8), direction: &Direction) -> (i8, i8) {
 	}
 }
 
-fn string_position(input: (i8, i8), output: &mut String) {
+fn position_string(input: (i8, i8), output: &mut String) {
 	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
 	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
+}
+fn positions_join<'a, I: Iterator<Item = &'a (i8, i8)>>(input: I, len: usize) -> String {
+	let mut output = String::with_capacity(len * (2 + 2) - 2);
+	let mut first  = true;
+
+	for pos in input {
+		if first {
+			first = false
+		} else {
+			output.push_str(", ");
+		}
+
+		position_string(*pos, &mut output)
+	}
+
+	output
 }
 fn parse_position(input: &str) -> Option<(i8, i8)> {
 	let (mut x, mut y) = (0, 0);
@@ -164,20 +180,7 @@ fn main() {
 					continue;
 				}
 
-				let mut output = String::with_capacity(possible.len() * 4 - 2);
-				let mut first  = true;
-
-				for pos in possible {
-					if first {
-						first = false
-					} else {
-						output.push_str(", ");
-					}
-
-					string_position(pos, &mut output)
-				}
-
-				println!("{}", output);
+				println!("{}", positions_join(possible.iter(), possible.len()));
 			},
 			"all" => {
 				usage!(0, "all");
@@ -188,22 +191,16 @@ fn main() {
 					continue;
 				}
 
-				let mut output = String::with_capacity(possible.len() * 4 - 2);
-				let mut first  = true;
-
-				for moves in possible.values() {
-					for pos in moves {
-						if first {
-							first = false
-						} else {
-							output.push_str(", ");
-						}
-
-						string_position(*pos, &mut output)
+				for ((x, y), moves) in possible {
+					if moves.is_empty() {
+						continue;
 					}
-				}
 
-				println!("{}", output);
+					let mut pos = String::with_capacity(2);
+					position_string((x, y), &mut pos);
+
+					println!("{}: {}", pos, positions_join(moves.iter(), moves.len()));
+				}
 			},
 			"best" => {
 				usage!(0, "best");
@@ -216,9 +213,9 @@ fn main() {
 				println!("Final Score: {}", score);
 
 				let mut string = String::with_capacity(2 + 4 + 2);
-				string_position(from, &mut string);
+				position_string(from, &mut string);
 				string.push_str(" to ");
-				string_position(to, &mut string);
+				position_string(to, &mut string);
 				println!("Move {}", string);
 			},
 			"reset" => {
