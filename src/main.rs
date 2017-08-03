@@ -1,8 +1,10 @@
 mod board;
 mod piece;
+mod search;
 
 pub use board::*;
 pub use piece::*;
+pub use search::*;
 use std::io::{self, Write};
 
 #[derive(Debug)]
@@ -60,7 +62,6 @@ fn parse_position(input: &str) -> Option<(i8, i8)> {
 		}
 	}
 
-	println!("({}, {})", x, y);
 	Some((x, y))
 }
 
@@ -185,6 +186,17 @@ fn main() {
 					Some(false) => println!("WHITE CHECK"),
 					Some(true) => println!("BLACK CHECK"),
 				}
+			},
+			"best" => {
+				usage!(0, "best");
+
+				let mut score = 0;
+				let ((x, y), (new_x, new_y)) = search(&mut board, true, &mut score, 0);
+
+				board[new_y as usize][new_x as usize] = board[y as usize][x as usize].clone();
+				board[y as usize][x as usize] = Piece::Empty;
+
+				println!("Final Score: {}", score)
 			}
 			_ => eprintln!("Unknown command"),
 		}

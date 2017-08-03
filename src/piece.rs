@@ -1,6 +1,6 @@
 use *;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Piece {
 	King(bool),
 	Queen(bool),
@@ -94,8 +94,9 @@ impl Piece {
 				(black == (rel_y < 0)) &&
 					(rel_x.abs() != 2) &&
 					(rel_y.abs() != 2 ||
-						(!black && y == 3) ||
+						(((!black && y == 3) ||
 						(black && y == 4)) &&
+						board[y as usize - 1][x as usize].is_empty())) &&
 					((rel_x.abs() == 0) == piece.is_empty())
 			},
 			_ => true,
