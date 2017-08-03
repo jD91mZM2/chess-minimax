@@ -1,6 +1,6 @@
 use *;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Piece {
 	King(bool),
 	Queen(bool),
@@ -91,14 +91,12 @@ impl Piece {
 
 		match *self {
 			Piece::Pawn(black) => {
-				(black || rel_y > 0) &&
-					(!black || rel_y < 0) &&
+				(black == (rel_y < 0)) &&
 					(rel_x.abs() != 2) &&
 					(rel_y.abs() != 2 ||
 						(!black && y == 3) ||
-						(black && y == 5)) &&
-					(rel_x.abs() != 0 || piece.is_empty()) &&
-					(rel_x.abs() == 0 || !piece.is_empty())
+						(black && y == 4)) &&
+					((rel_x.abs() == 0) == piece.is_empty())
 			},
 			_ => true,
 		}

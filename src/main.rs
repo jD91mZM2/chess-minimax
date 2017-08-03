@@ -40,7 +40,6 @@ pub fn rotate(rel: (i8, i8), direction: &Direction) -> (i8, i8) {
 }
 
 fn string_position(input: (i8, i8), output: &mut String) {
-	println!("{:?}", input);
 	output.push(std::char::from_u32(input.0 as u32 + 'A' as u32).unwrap());
 	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
 }
@@ -71,7 +70,7 @@ fn main() {
 	loop {
 		println!("{}", board::board_string(&board));
 
-		println!("Commands: move, possible, best");
+		println!("Commands: move, possible, all, check, best");
 		print!("> ");
 		io::stdout().flush().unwrap();
 
@@ -151,6 +150,41 @@ fn main() {
 				}
 
 				println!("{}", output);
+			},
+			"all" => {
+				usage!(0, "all");
+
+				let possible = possible_moves(&board, true);
+				if possible.is_empty() {
+					println!("No possible moves");
+					continue;
+				}
+
+				let mut output = String::with_capacity(possible.len() * 4 - 2);
+				let mut first  = true;
+
+				for moves in possible.values() {
+					for pos in moves {
+						if first {
+							first = false
+						} else {
+							output.push_str(", ");
+						}
+
+						string_position(*pos, &mut output)
+					}
+				}
+
+				println!("{}", output);
+			},
+			"check" => {
+				usage!(0, "check");
+
+				match get_check(&board) {
+					None => println!("No check"),
+					Some(false) => println!("WHITE CHECK"),
+					Some(true) => println!("BLACK CHECK"),
+				}
 			}
 			_ => eprintln!("Unknown command"),
 		}
