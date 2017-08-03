@@ -2,20 +2,20 @@ use *;
 
 const MAX_DEPTH: u8 = 3;
 
-pub fn search(board: &mut Board, black: bool, score: &mut i32, depth: u8) -> ((i8, i8), (i8, i8)) {
+pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8, i8)) {
 	if depth > MAX_DEPTH {
-		return ((0, 0), (0, 0));
+		return (0, (0, 0), (0, 0));
 	}
 	println!("Searching. Depth: {}", depth);
 
 	let possible = possible_moves(board, black);
 
-	let mut highest = ((0, 0), (0, 0));
-	let mut max = None;
+	let mut scores = Vec::new();
+	let mut moves: Vec<((i8, i8), (i8, i8))> = Vec::new();
 
-	for ((x, y), moves) in possible {
-		for (new_x, new_y) in moves {
-			let mut score = *score;
+	for ((x, y), moves2) in possible {
+		for (new_x, new_y) in moves2 {
+			let mut score;
 
 			let old = board[new_y as usize][new_x as usize].clone();
 			board[new_y as usize][new_x as usize] = board[y as usize][x as usize].clone();
@@ -23,18 +23,16 @@ pub fn search(board: &mut Board, black: bool, score: &mut i32, depth: u8) -> ((i
 
 			let new_possible = possible_moves(board, black);
 			if is_check(board, black, &new_possible).is_some() {
-				score += if black { -10 } else { 10 }
+				score = if black { -10 } else { 10 };
 			} else {
-				search(board, !black, &mut score, depth + 1);
-			}
-			if !old.is_empty() {
-				score += if black { 1 } else { -1 }
+				score = search(board, !black, depth + 1).0;
+				if !old.is_empty() {
+					score = if black { 1 } else { -1 };
+				}
 			}
 
-			if max.is_none() || (black && score > max.unwrap()) || (!black && score < max.unwrap() && score != 0) {
-				max = Some(score);
-				highest = ((x, y), (new_x, new_y));
-			}
+			scores.push(score);
+			moves.push(((x, y), (new_x, new_y)));
 
 			board[y as usize][x as usize] = board[new_y as usize][new_x as usize].clone();
 			board[new_y as usize][new_x as usize] = old;
@@ -42,11 +40,28 @@ pub fn search(board: &mut Board, black: bool, score: &mut i32, depth: u8) -> ((i
 	}
 
 	if black {
-		println!("Black Score: {}", max.unwrap());
-	} else {
-		println!("White Score: {}", max.unwrap());
-	}
+		let mut max = std::i32::MIN;
+		let mut index = 0;
+		for (i, score) in scores.iter().enumerate() {
+			if *score > max {
+				max = *score;
+				index = i;
+			}
+		}
+		println!("Black Score: {}", max);
 
-	*score = max.unwrap();
-	highest
+		(max, moves[index].0, moves[index].1)
+	} else {
+		let mut min = std::i32::MAX;
+		let mut index = 0;
+		for (i, score) in scores.iter().enumerate() {
+			if *score < min {
+				min = *score;
+				index = i;
+			}
+		}
+		println!("White Score: {}", min);
+
+		(min, moves[index].0, moves[index].1)
+	}
 }

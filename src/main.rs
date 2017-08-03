@@ -190,8 +190,7 @@ fn main() {
 			"best" => {
 				usage!(0, "best");
 
-				let mut score = 0;
-				let ((x, y), (new_x, new_y)) = search(&mut board, true, &mut score, 0);
+				let (score, (x, y), (new_x, new_y)) = search(&mut board, true, 0);
 
 				board[new_y as usize][new_x as usize] = board[y as usize][x as usize].clone();
 				board[y as usize][x as usize] = Piece::Empty;
