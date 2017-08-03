@@ -7,10 +7,10 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 		let mut score = 0;
 		for line in board {
 			for piece in line {
-				score += piece.worth();
+				score += piece.worth() as i32;
 			}
 		}
-		return (score as i32, (0, 0), (0, 0));
+		return (score, (0, 0), (0, 0));
 	}
 	let possible = possible_moves(board, black);
 
