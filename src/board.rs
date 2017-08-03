@@ -20,7 +20,7 @@ macro_rules! none {
 pub type Board = [[Piece; 8]; 8];
 
 pub fn board_string(board: &Board) -> String {
-	let mut output = String::with_capacity(8 * 9 + (9 + 2 + 1)); // width * height + (height + index + newline)
+	let mut output = String::new();
 
 	output.push_str("  H G F E D C B A\n");
 	for (i, line) in board.iter().enumerate() {
