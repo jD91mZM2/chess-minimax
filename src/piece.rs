@@ -77,10 +77,10 @@ impl Piece {
 		// Returns DownRight
 		match *self {
 			Piece::King(_) => 100,
-			Piece::Queen(_) => 4,
-			Piece::Rook(_) => 3,
-			Piece::Bishop(_) => 2,
-			Piece::Knight(_) => 2,
+			Piece::Queen(_) => 9,
+			Piece::Rook(_) => 5,
+			Piece::Bishop(_) => 3,
+			Piece::Knight(_) => 3,
 			Piece::Pawn(_) => 1,
 			Piece::Empty => 0,
 		}
