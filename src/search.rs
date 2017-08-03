@@ -8,8 +8,9 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 	}
 	let possible = possible_moves(board, black);
 
-	let mut scores = Vec::new();
-	let mut moves: Vec<((i8, i8), (i8, i8))> = Vec::new();
+	let mut max_or_min = if black { std::i32::MIN } else { std::i32::MAX };
+	let mut selected   = ((0, 0), (0, 0));
+	let mut found      = false;
 
 	for ((x, y), moves2) in possible {
 		for (new_x, new_y) in moves2 {
@@ -61,34 +62,19 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 
 			// println!("Possible move:\n{}", board_string(&board));
 
-			scores.push(if black { score } else { -score });
-			moves.push(((x, y), (new_x, new_y)));
+			if (black && score > max_or_min) || (!black && score < max_or_min) {
+				max_or_min = score;
+				selected   = ((x, y), (new_x, new_y));
+				found      = true;
+			}
 
 			repair!();
 		}
 	}
 
-	if black {
-		let mut max = std::i32::MIN;
-		let mut index = 0;
-		for (i, score) in scores.iter().enumerate() {
-			if *score > max {
-				max = *score;
-				index = i;
-			}
-		}
-
-		(max, moves[index].0, moves[index].1)
+	if found {
+		(max_or_min, selected.0, selected.1)
 	} else {
-		let mut min = std::i32::MAX;
-		let mut index = 0;
-		for (i, score) in scores.iter().enumerate() {
-			if *score < min {
-				min = *score;
-				index = i;
-			}
-		}
-
-		(min, moves[index].0, moves[index].1)
+		(0, (0, 0), (0, 0))
 	}
 }
