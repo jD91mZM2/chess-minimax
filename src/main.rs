@@ -63,7 +63,6 @@ fn parse_position(input: &str) -> Option<(i8, i8)> {
 		}
 	}
 
-	println!("{}, {}", x, y);
 	Some((x, y))
 }
 
