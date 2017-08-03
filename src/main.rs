@@ -69,6 +69,7 @@ fn main() {
 	let mut board = board::make_board();
 
 	loop {
+		println!();
 		println!("{}", board::board_string(&board));
 
 		println!("Commands: move, possible, all, check, best");
@@ -190,12 +191,18 @@ fn main() {
 			"best" => {
 				usage!(0, "best");
 
-				let (score, (x, y), (new_x, new_y)) = search(&mut board, true, 0);
+				let (score, from, to) = search(&mut board, true, 0);
 
-				board[new_y as usize][new_x as usize] = board[y as usize][x as usize].clone();
-				board[y as usize][x as usize] = Piece::Empty;
+				board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize].clone();
+				board[from.1 as usize][from.1 as usize] = Piece::Empty;
 
-				println!("Final Score: {}", score)
+				println!("Final Score: {}", score);
+
+				let mut string = String::with_capacity(2 + 4 + 2);
+				string_position(from, &mut string);
+				string.push_str(" to ");
+				string_position(to, &mut string);
+				println!("Move {}", string);
 			}
 			_ => eprintln!("Unknown command"),
 		}

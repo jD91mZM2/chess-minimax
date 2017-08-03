@@ -6,8 +6,6 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 	if depth > MAX_DEPTH {
 		return (0, (0, 0), (0, 0));
 	}
-	println!("Searching. Depth: {}", depth);
-
 	let possible = possible_moves(board, black);
 
 	let mut scores = Vec::new();
@@ -48,7 +46,6 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 				index = i;
 			}
 		}
-		println!("Black Score: {}", max);
 
 		(max, moves[index].0, moves[index].1)
 	} else {
@@ -60,7 +57,6 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 				index = i;
 			}
 		}
-		println!("White Score: {}", min);
 
 		(min, moves[index].0, moves[index].1)
 	}
