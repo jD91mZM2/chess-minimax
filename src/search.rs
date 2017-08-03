@@ -13,28 +13,58 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 
 	for ((x, y), moves2) in possible {
 		for (new_x, new_y) in moves2 {
+			let mut ignore = false;
 			let mut score;
 
-			let old = board[new_y as usize][new_x as usize].clone();
-			board[new_y as usize][new_x as usize] = board[y as usize][x as usize].clone();
+			let old = board[new_y as usize][new_x as usize];
+			board[new_y as usize][new_x as usize] = board[y as usize][x as usize];
 			board[y as usize][x as usize] = Piece::Empty;
 
-			let new_possible = possible_moves(board, black);
-			if is_check(board, black, &new_possible).is_some() {
-				score = if black { -10 } else { 10 };
+			if is_check(board, black, &possible_moves(board, !black)) {
+				score = 0;
+				ignore = true;
+			} else if is_check(board, !black, &possible_moves(board, black)) {
+				// Ugh, try every possible move to be 100% if it's checkmate.
+				let mut mate = true;
+				for ((x, y), moves3) in possible_moves(board, !black) {
+					for (new_x, new_y) in moves3 {
+						let old = board[new_y as usize][new_x as usize];
+						board[new_y as usize][new_x as usize] = board[y as usize][x as usize];
+						board[y as usize][x as usize] = Piece::Empty;
+
+						mate = !is_check(board, !black, &possible_moves(board, black));
+
+						board[y as usize][x as usize] = board[new_y as usize][new_x as usize];
+						board[new_y as usize][new_x as usize] = old;
+
+						if !mate {
+							break;
+						}
+					}
+				}
+
+				if mate {
+					score = 100;
+				} else {
+					score = 1;
+				}
 			} else {
 				score = search(board, !black, depth + 1).0;
-				if !old.is_empty() {
-					score = if black { 1 } else { -1 };
-				}
+				score += match old {
+					Piece::Empty => 0,
+					Piece::Queen(_) => 2,
+					_ => 1,
+				};
 			}
 
 			// println!("Possible move:\n{}", board_string(&board));
 
-			scores.push(score);
-			moves.push(((x, y), (new_x, new_y)));
+			if !ignore {
+				scores.push(if black { score } else { -score });
+				moves.push(((x, y), (new_x, new_y)));
+			}
 
-			board[y as usize][x as usize] = board[new_y as usize][new_x as usize].clone();
+			board[y as usize][x as usize] = board[new_y as usize][new_x as usize];
 			board[new_y as usize][new_x as usize] = old;
 		}
 	}

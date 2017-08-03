@@ -60,27 +60,24 @@ pub fn is_check(
 			board: &Board,
 			black: bool,
 			possible: &HashMap<(i8, i8), Vec<(i8, i8)>>
-		) -> Option<(i8, i8)> {
+		) -> bool {
 	for moves in possible.values() {
 		for pos in moves {
 			if let Piece::King(black2) = board[pos.1 as usize][pos.0 as usize] {
 				if black == black2 {
-					return Some(*pos);
+					return true;
 				}
 			}
 		}
 	}
 
-	None
+	false
 }
 pub fn get_check(board: &Board) -> Option<bool> {
-	let possible_white = possible_moves(&board, false);
-	let possible_black = possible_moves(&board, true);
-
-	if is_check(board, false, &possible_black).is_some() {
+	if is_check(board, false, &possible_moves(board, true)) {
 		return Some(false);
 	}
-	if is_check(board, true, &possible_white).is_some() {
+	if is_check(board, true, &possible_moves(board, false)) {
 		return Some(true);
 	}
 

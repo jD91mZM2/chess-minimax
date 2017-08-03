@@ -74,7 +74,7 @@ fn main() {
 		println!();
 		println!("{}", board::board_string(&board));
 
-		println!("Commands: move, possible, all, check, best");
+		println!("Commands: move, possible, all, check, best, reset");
 		print!("> ");
 		io::stdout().flush().unwrap();
 
@@ -125,7 +125,7 @@ fn main() {
 				let (from_x, from_y) = from;
 				let (to_x, to_y) = to;
 
-				board[to_y as usize][to_x as usize] = board[from_y as usize][from_x as usize].clone();
+				board[to_y as usize][to_x as usize] = board[from_y as usize][from_x as usize];
 				board[from_y as usize][from_x as usize] = Piece::Empty;
 			},
 			"possible" => {
@@ -186,8 +186,8 @@ fn main() {
 
 				match get_check(&board) {
 					None => println!("No check"),
-					Some(false) => println!("WHITE CHECK"),
-					Some(true) => println!("BLACK CHECK"),
+					Some(false) => println!("WHITE CHECKED"),
+					Some(true) => println!("BLACK CHECKED"),
 				}
 			},
 			"best" => {
@@ -195,7 +195,7 @@ fn main() {
 
 				let (score, from, to) = search(&mut board, true, 0);
 
-				board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize].clone();
+				board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize];
 				board[from.1 as usize][from.0 as usize] = Piece::Empty;
 
 				println!("Final Score: {}", score);
@@ -205,6 +205,11 @@ fn main() {
 				string.push_str(" to ");
 				string_position(to, &mut string);
 				println!("Move {}", string);
+			},
+			"reset" => {
+				usage!(0, "reset");
+
+				board = board::make_board();
 			}
 			_ => eprintln!("Unknown command"),
 		}
