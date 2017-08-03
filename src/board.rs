@@ -22,7 +22,7 @@ pub type Board = [[Piece; 8]; 8];
 pub fn board_string(board: &Board) -> String {
 	let mut output = String::with_capacity(8 * 9 + (9 + 2 + 1)); // width * height + (height + index + newline)
 
-	output.push_str("  ABCDEFGH\n");
+	output.push_str("  HGFEDCBA\n");
 	for (i, line) in board.iter().enumerate() {
 		output.push_str(&(i + 1).to_string());
 		output.push(' ');

@@ -42,7 +42,8 @@ pub fn rotate(rel: (i8, i8), direction: &Direction) -> (i8, i8) {
 }
 
 fn string_position(input: (i8, i8), output: &mut String) {
-	output.push(std::char::from_u32(input.0 as u32 + 'A' as u32).unwrap());
+	println!("{:?}", input);
+	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
 	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
 }
 fn parse_position(input: &str) -> Option<(i8, i8)> {
@@ -52,9 +53,9 @@ fn parse_position(input: &str) -> Option<(i8, i8)> {
 		let code = c as u32;
 
 		if code >= 'a' as u32 && code <= 'h' as u32 {
-			x = (code - 'a' as u32) as i8
+			x = (7 - (code - 'a' as u32)) as i8
 		} else if code >= 'A' as u32 && code <= 'H' as u32 {
-			x = (code - 'A' as u32) as i8
+			x = (7 - (code - 'A' as u32)) as i8
 		} else if code >= '1' as u32 && code <= '8' as u32 {
 			y = (code - '1' as u32) as i8
 		} else {
@@ -62,6 +63,7 @@ fn parse_position(input: &str) -> Option<(i8, i8)> {
 		}
 	}
 
+	println!("{}, {}", x, y);
 	Some((x, y))
 }
 
@@ -194,7 +196,7 @@ fn main() {
 				let (score, from, to) = search(&mut board, true, 0);
 
 				board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize].clone();
-				board[from.1 as usize][from.1 as usize] = Piece::Empty;
+				board[from.1 as usize][from.0 as usize] = Piece::Empty;
 
 				println!("Final Score: {}", score);
 

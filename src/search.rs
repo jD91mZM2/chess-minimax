@@ -29,6 +29,8 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 				}
 			}
 
+			// println!("Possible move:\n{}", board_string(&board));
+
 			scores.push(score);
 			moves.push(((x, y), (new_x, new_y)));
 
