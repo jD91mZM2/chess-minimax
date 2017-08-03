@@ -78,7 +78,7 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 			}
 		}
 
-		Some((max, moves[index].0, moves[index].1))
+		(max, moves[index].0, moves[index].1)
 	} else {
 		let mut min = std::i32::MAX;
 		let mut index = 0;
@@ -89,6 +89,6 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 			}
 		}
 
-		Some((min, moves[index].0, moves[index].1))
+		(min, moves[index].0, moves[index].1)
 	}
 }

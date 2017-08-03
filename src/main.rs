@@ -94,10 +94,7 @@ fn main() {
 		io::stdout().flush().unwrap();
 
 		if let Some(ref mut auto_player) = auto_player {
-			let (_, from, to) = match search(&mut board, *auto_player, 0) {
-				Some(m) => m,
-				None => break,
-			};
+			let (_, from, to) = search(&mut board, *auto_player, 0);
 			*auto_player = !*auto_player;
 
 			board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize];
@@ -211,13 +208,7 @@ fn main() {
 			"best" => {
 				usage!(0, "best");
 
-				let (score, from, to) = match search(&mut board, true, 0) {
-					Some(m) => m,
-					None => {
-						println!("Nope, game has ended");
-						continue;
-					},
-				};
+				let (score, from, to) = search(&mut board, true, 0);
 
 				board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize];
 				board[from.1 as usize][from.0 as usize] = Piece::Empty;
