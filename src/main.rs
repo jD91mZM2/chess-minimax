@@ -20,8 +20,17 @@ pub enum Direction {
 }
 
 impl Direction {
-	pub fn all() -> [Direction; 4] {
-		[Direction::UpLeft, Direction::UpRight, Direction::DownLeft, Direction::DownRight]
+	pub fn all() -> [Direction; 8] {
+		[
+			Direction::UpLeft,
+			Direction::UpRight,
+			Direction::LeftUp,
+			Direction::LeftDown,
+			Direction::RightUp,
+			Direction::RightDown,
+			Direction::DownLeft,
+			Direction::DownRight
+		]
 	}
 }
 
@@ -42,7 +51,6 @@ pub fn rotate(rel: (i8, i8), direction: &Direction) -> (i8, i8) {
 }
 
 fn string_position(input: (i8, i8), output: &mut String) {
-	println!("{:?}", input);
 	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
 	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
 }
@@ -68,14 +76,34 @@ fn parse_position(input: &str) -> Option<(i8, i8)> {
 
 fn main() {
 	let mut board = board::make_board();
+	let mut auto_player = None;
 
 	loop {
 		println!();
 		println!("{}", board::board_string(&board));
 
-		println!("Commands: move, possible, all, check, best, reset");
+		println!();
+		match get_check(&board) {
+			None => {},
+			Some(false) => println!("WHITE CHECKED"),
+			Some(true) => println!("BLACK CHECKED"),
+		}
+
+		println!("Commands: move, possible, all, best, reset");
 		print!("> ");
 		io::stdout().flush().unwrap();
+
+		if let Some(ref mut auto_player) = auto_player {
+			let (_, from, to) = match search(&mut board, *auto_player, 0) {
+				Some(m) => m,
+				None => break,
+			};
+			*auto_player = !*auto_player;
+
+			board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize];
+			board[from.1 as usize][from.0 as usize] = Piece::Empty;
+			continue;
+		}
 
 		let mut cmd = String::new();
 		match io::stdin().read_line(&mut cmd) {
@@ -180,19 +208,16 @@ fn main() {
 
 				println!("{}", output);
 			},
-			"check" => {
-				usage!(0, "check");
-
-				match get_check(&board) {
-					None => println!("No check"),
-					Some(false) => println!("WHITE CHECKED"),
-					Some(true) => println!("BLACK CHECKED"),
-				}
-			},
 			"best" => {
 				usage!(0, "best");
 
-				let (score, from, to) = search(&mut board, true, 0);
+				let (score, from, to) = match search(&mut board, true, 0) {
+					Some(m) => m,
+					None => {
+						println!("Nope, game has ended");
+						continue;
+					},
+				};
 
 				board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize];
 				board[from.1 as usize][from.0 as usize] = Piece::Empty;
@@ -209,6 +234,9 @@ fn main() {
 				usage!(0, "reset");
 
 				board = board::make_board();
+			},
+			"play" => {
+				auto_player = Some(true);
 			}
 			_ => eprintln!("Unknown command"),
 		}

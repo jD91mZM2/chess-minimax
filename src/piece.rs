@@ -73,6 +73,19 @@ impl Piece {
 		}
 	}
 
+	pub fn worth(&self) -> u8 {
+		// Returns DownRight
+		match *self {
+			Piece::King(_) => 100,
+			Piece::Queen(_) => 4,
+			Piece::Rook(_) => 3,
+			Piece::Bishop(_) => 2,
+			Piece::Knight(_) => 2,
+			Piece::Pawn(_) => 1,
+			Piece::Empty => 0,
+		}
+	}
+
 	pub fn can_move(&self, board: &Board, rel: (i8, i8), abs: (i8, i8)) -> bool {
 		let (rel_x, rel_y) = rel;
 		let (x, y) = abs;
