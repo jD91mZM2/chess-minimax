@@ -36,6 +36,28 @@ pub fn board_string(board: &Board) -> String {
 	output
 }
 
+pub fn board_set(board: &mut Board, pos: (i8, i8), mut piece: Piece) {
+	if let Piece::Pawn(black) = piece {
+		if (black && pos.1 == 0) ||
+			(!black && pos.1 == 7) {
+
+			piece = Piece::Queen(black);
+		}
+	}
+	board[pos.1 as usize][pos.0 as usize] = piece;
+}
+pub fn board_get(board: &Board, pos: (i8, i8)) -> &Piece {
+	&board[pos.1 as usize][pos.0 as usize]
+}
+pub fn board_move(board: &mut Board, from: (i8, i8), to: (i8, i8)) -> Piece {
+	let piece = *board_get(board, from);
+	let old = *board_get(board, to);
+	board_set(board, to, piece);
+	board_set(board, from, Piece::Empty);
+
+	old
+}
+
 pub fn possible_moves(board: &Board, black: bool) -> HashMap<(i8, i8), Vec<(i8, i8)>> {
 	let mut map = HashMap::new();
 
@@ -64,7 +86,7 @@ pub fn is_check(
 		) -> bool {
 	for moves in possible.values() {
 		for pos in moves {
-			if let Piece::King(black2) = board[pos.1 as usize][pos.0 as usize] {
+			if let Piece::King(black2) = *board_get(board, *pos) {
 				if black == black2 {
 					return true;
 				}

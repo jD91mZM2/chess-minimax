@@ -1,4 +1,7 @@
 use *;
+use std::str::FromStr;
+
+pub struct NoSuchPieceErr;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Piece {
@@ -11,6 +14,27 @@ pub enum Piece {
 	Empty
 }
 
+impl FromStr for Piece {
+	type Err = NoSuchPieceErr;
+
+	fn from_str(input: &str) -> Result<Self, Self::Err> {
+		Ok(match input {
+			"blackking" => Piece::King(true),
+			"whiteking" => Piece::King(false),
+			"blackqueen" => Piece::Queen(true),
+			"whitequeen" => Piece::Queen(false),
+			"blackrook" => Piece::Rook(true),
+			"whiterook" => Piece::Rook(false),
+			"blackbishop" => Piece::Bishop(true),
+			"whitebishop" => Piece::Bishop(false),
+			"blackknight" => Piece::Knight(true),
+			"whiteknight" => Piece::Knight(false),
+			"blackpawn" => Piece::Pawn(true),
+			"whitepawn" => Piece::Pawn(false),
+			_ => return Err(NoSuchPieceErr),
+		})
+	}
+}
 impl Piece {
 	pub fn to_char(&self) -> char {
 		match *self {
@@ -98,8 +122,7 @@ impl Piece {
 			return false;
 		}
 
-
-		let piece = &board[y as usize][x as usize];
+		let piece = board_get(&board, abs);
 		if !piece.is_empty() && self.is_black() == piece.is_black() {
 			return false;
 		}
@@ -111,8 +134,8 @@ impl Piece {
 					(rel_y.abs() != 2 ||
 						(((!black && y == 3) ||
 						(black && y == 4)) &&
-						(rel_y == 2 && board[y as usize - 1][x as usize].is_empty() ||
-						 rel_y == -2 && board[y as usize + 1][x as usize].is_empty()))) &&
+						(rel_y == 2 && board_get(board, (x, y - 1)).is_empty() ||
+						 rel_y == -2 && board_get(board, (x, y + 1)).is_empty()))) &&
 					((rel_x.abs() == 0) == piece.is_empty())
 			},
 			_ => true,
@@ -140,7 +163,7 @@ impl Piece {
 						break;
 					}
 
-					if !recursive || !board[abs.1 as usize][abs.0 as usize].is_empty() {
+					if !recursive || !board_get(board, abs).is_empty() {
 						break;
 					}
 

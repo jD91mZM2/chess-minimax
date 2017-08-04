@@ -104,7 +104,7 @@ fn main() {
 		}
 		println!("{}", board::board_string(&board));
 
-		println!("Commands: move(f), possible, all, best, setplayer, reset");
+		println!("Commands: move(f), spawn, clear, reset, score, possible, all, best, setplayer");
 		print!("> ");
 		io::stdout().flush().unwrap();
 
@@ -112,8 +112,7 @@ fn main() {
 			let (_, from, to) = search(&mut board, *auto_player, 0);
 			*auto_player = !*auto_player;
 
-			board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize];
-			board[from.1 as usize][from.0 as usize] = Piece::Empty;
+			board_move(&mut board, from, to);
 			continue;
 		}
 
@@ -161,11 +160,8 @@ fn main() {
 				let from = parse_pos!(args[0]);
 				let to = parse_pos!(args[1]);
 
-				let (from_x, from_y) = from;
-				let (to_x, to_y) = to;
-
 				if cmd == "move" {
-					let piece = board[from_y as usize][from_x as usize];
+					let piece = *board_get(&mut board, from);
 
 					let mut found = false;
 					for m in piece.possible_moves(&board, from) {
@@ -181,16 +177,47 @@ fn main() {
 					}
 				}
 
-				board[to_y as usize][to_x as usize] = board[from_y as usize][from_x as usize];
-				board[from_y as usize][from_x as usize] = Piece::Empty;
+				board_move(&mut board, from, to);
 			},
+			"spawn" => {
+				usage!(2, "spawn <position> <piece>");
+
+				let pos = parse_pos!(args[0]);
+				let piece = match args[1].parse() {
+					Ok(piece) => piece,
+					Err(_) => {
+						eprintln!("No such piece");
+						continue;
+					}
+				};
+
+				board_set(&mut board, pos, piece);
+			},
+			"clear" => {
+				usage!(0, "clear");
+
+				for line in board.iter_mut() {
+					for piece in line.iter_mut() {
+						*piece = Piece::Empty;
+					}
+				}
+			},
+			"reset" => {
+				usage!(0, "reset");
+
+				board = board::make_board();
+			},
+			"score" => {
+				usage!(0, "score");
+
+				println!("{}", score(&mut board, player));
+			}
 			"possible" => {
 				usage!(1, "possible <pos>");
 
 				let pos = parse_pos!(args[0]);
-				let (x, y) = pos;
 
-				let possible = board[y as usize][x as usize].possible_moves(&board, pos);
+				let possible = (*board_get(&board, pos)).possible_moves(&board, pos);
 				if possible.is_empty() {
 					println!("No possible moves");
 					continue;
@@ -201,7 +228,7 @@ fn main() {
 			"all" => {
 				usage!(0, "all");
 
-				let possible = possible_moves(&board, true);
+				let possible = possible_moves(&board, player);
 				if possible.is_empty() {
 					println!("No possible moves");
 					continue;
@@ -223,8 +250,7 @@ fn main() {
 
 				let (mut score, from, to) = search(&mut board, player, 0);
 
-				board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize];
-				board[from.1 as usize][from.0 as usize] = Piece::Empty;
+				board_move(&mut board, from, to);
 
 				score = if player { score } else { -score };
 				println!("Final Score: {}", score);
@@ -256,11 +282,6 @@ fn main() {
 					continue;
 				}
 				player = new_player;
-			}
-			"reset" => {
-				usage!(0, "reset");
-
-				board = board::make_board();
 			},
 			"play" => {
 				auto_player = Some(false);
