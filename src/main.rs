@@ -109,10 +109,7 @@ fn main() {
 		io::stdout().flush().unwrap();
 
 		if let Some(ref mut auto_player) = auto_player {
-			let (_, from, to) = match search(&mut board, *auto_player, 0) {
-				Some(search) => search,
-				None => break,
-			};
+			let (_, from, to) = search(&mut board, *auto_player, 0);
 			*auto_player = !*auto_player;
 
 			board_move(&mut board, from, to);
@@ -251,10 +248,7 @@ fn main() {
 			"best" => {
 				usage!(0, "best");
 
-				let (mut score, from, to) = match search(&mut board, player, 0) {
-					Some(search) => search,
-					None => continue,
-				};
+				let (mut score, from, to) = search(&mut board, player, 0);
 
 				board_move(&mut board, from, to);
 

@@ -22,14 +22,14 @@ pub fn score(board: &Board, black: bool) -> i32 {
 
 	if black { score } else { -score }
 }
-pub fn search(board: &mut Board, black: bool, depth: u8) -> Option<(i32, (i8, i8), (i8, i8))> {
+pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8, i8)) {
 	if depth > MAX_DEPTH {
 		let mut black = black; // Don't wanna make entire variable mutable for the entire function.
 		if MAX_DEPTH % 2 == 0 {
 			black = !black;
 		}
 
-		return Some((score(board, black), (0, 0), (0, 0)));
+		return (score(board, black), (0, 0), (0, 0));
 	}
 	let possible = possible_moves(board, black);
 
@@ -45,24 +45,12 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> Option<(i32, (i8, i8
 			// it wouldn't undo Pawn -> Queen.
 			let (old_from, old_to) = board_move(board, old, new);
 
-			macro_rules! repair {
-				() => {
-					board_set(board, old, old_from);
-					board_set(board, new, old_to);
-				}
-			}
-
-			score = match search(board, !black, depth + 1) {
-				Some(search) => search.0,
-				None => {
-					repair!();
-					continue;
-				},
-			};
+			score = search(board, !black, depth + 1).0;
 
 			// println!("Possible move:\n{}", board_string(&board));
 
-			repair!();
+			board_set(board, old, old_from);
+			board_set(board, new, old_to);
 
 			if (black && score > max_or_min) || (!black && score < max_or_min) {
 				max_or_min = score;
@@ -73,8 +61,8 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> Option<(i32, (i8, i8
 	}
 
 	if found {
-		Some((max_or_min, selected.0, selected.1))
+		(max_or_min, selected.0, selected.1)
 	} else {
-		None
+		(0, (0, 0), (0, 0))
 	}
 }
