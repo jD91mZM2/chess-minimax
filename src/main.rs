@@ -155,7 +155,7 @@ fn main() {
 				}
 			}
 		}
-		match &*cmd {
+		match cmd {
 			"move" => {
 				usage!(2, "move <from> <to>");
 
