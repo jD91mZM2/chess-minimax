@@ -63,6 +63,6 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 	if found {
 		(max_or_min, selected.0, selected.1)
 	} else {
-		(0, (0, 0), (0, 0))
+		(score(board, black), (0, 0), (0, 0))
 	}
 }
