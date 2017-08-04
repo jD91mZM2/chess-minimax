@@ -92,20 +92,19 @@ fn parse_position(input: &str) -> Option<(i8, i8)> {
 
 fn main() {
 	let mut board = board::make_board();
+	let mut player = true;
 	let mut auto_player = None;
 
 	loop {
 		println!();
-		println!("{}", board::board_string(&board));
-
-		println!();
 		match get_check(&board) {
 			None => {},
-			Some(false) => println!("WHITE CHECKED"),
-			Some(true) => println!("BLACK CHECKED"),
+			Some(false) => println!("WHITE CHECKED\n"),
+			Some(true) => println!("BLACK CHECKED\n"),
 		}
+		println!("{}", board::board_string(&board));
 
-		println!("Commands: move, possible, all, best, reset");
+		println!("Commands: move(f), possible, all, best, setplayer, reset");
 		print!("> ");
 		io::stdout().flush().unwrap();
 
@@ -156,14 +155,31 @@ fn main() {
 			}
 		}
 		match cmd {
-			"move" => {
-				usage!(2, "move <from> <to>");
+			"move" | "movef" => {
+				usage!(2, "move(f) <from> <to>");
 
 				let from = parse_pos!(args[0]);
 				let to = parse_pos!(args[1]);
 
 				let (from_x, from_y) = from;
 				let (to_x, to_y) = to;
+
+				if cmd == "move" {
+					let piece = board[from_y as usize][from_x as usize];
+
+					let mut found = false;
+					for m in piece.possible_moves(&board, from) {
+						if m == to {
+							found = true;
+						}
+					}
+
+					if !found {
+						eprintln!("Can't move there!");
+						eprintln!("TIP: movef moves without checking first.");
+						continue;
+					}
+				}
 
 				board[to_y as usize][to_x as usize] = board[from_y as usize][from_x as usize];
 				board[from_y as usize][from_x as usize] = Piece::Empty;
@@ -205,11 +221,12 @@ fn main() {
 			"best" => {
 				usage!(0, "best");
 
-				let (score, from, to) = search(&mut board, true, 0);
+				let (mut score, from, to) = search(&mut board, player, 0);
 
 				board[to.1 as usize][to.0 as usize] = board[from.1 as usize][from.0 as usize];
 				board[from.1 as usize][from.0 as usize] = Piece::Empty;
 
+				score = if player { score } else { -score };
 				println!("Final Score: {}", score);
 
 				let mut string = String::with_capacity(2 + 4 + 2);
@@ -218,13 +235,35 @@ fn main() {
 				position_string(to, &mut string);
 				println!("Move {}", string);
 			},
+			"setplayer" => {
+				usage!(1, "setplayer <white/black>");
+
+				let new_player;
+				match args[0] {
+					"white" => {
+						new_player = false;
+					},
+					"black" => {
+						new_player = true;
+					},
+					_ => {
+						eprintln!("No such player");
+						continue;
+					}
+				}
+
+				if new_player == player {
+					continue;
+				}
+				player = new_player;
+			}
 			"reset" => {
 				usage!(0, "reset");
 
 				board = board::make_board();
 			},
 			"play" => {
-				auto_player = Some(true);
+				auto_player = Some(false);
 			}
 			_ => eprintln!("Unknown command"),
 		}
