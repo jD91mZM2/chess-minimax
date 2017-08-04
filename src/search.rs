@@ -22,14 +22,14 @@ pub fn score(board: &Board, black: bool) -> i32 {
 
 	if black { score } else { -score }
 }
-pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8, i8)) {
+pub fn search(board: &mut Board, black: bool, depth: u8) -> Option<(i32, (i8, i8), (i8, i8))> {
 	if depth > MAX_DEPTH {
 		let mut black = black; // Don't wanna make entire variable mutable for the entire function.
 		if MAX_DEPTH % 2 == 0 {
 			black = !black;
 		}
 
-		return (score(board, black), (0, 0), (0, 0));
+		return Some((score(board, black), (0, 0), (0, 0)));
 	}
 	let possible = possible_moves(board, black);
 
@@ -43,7 +43,10 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 
 			let old = board_move(board, pos_old, pos_new);
 
-			score = search(board, !black, depth + 1).0;
+			score = match search(board, !black, depth + 1) {
+				Some(search) => search.0,
+				None => continue,
+			};
 			// println!("Possible move:\n{}", board_string(&board));
 
 			let new = *board_get(board, pos_new);
@@ -59,9 +62,8 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 	}
 
 	if found {
-		(max_or_min, selected.0, selected.1)
+		Some((max_or_min, selected.0, selected.1))
 	} else {
-		// (if black { std::i32::MAX } else { std::i32::MIN }, (0, 0), (0, 0))
-		(0, (0, 0), (0, 0))
+		None
 	}
 }
