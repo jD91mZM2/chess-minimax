@@ -37,25 +37,36 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> Option<(i32, (i8, i8
 	let mut selected   = ((0, 0), (0, 0));
 	let mut found      = false;
 
-	for (pos_old, moves2) in possible {
-		for pos_new in moves2 {
+	for (old, moves2) in possible {
+		for new in moves2 {
 			let score;
 
-			let old = board_move(board, pos_old, pos_new);
+			// It could only return old_to, but then
+			// it wouldn't undo Pawn -> Queen.
+			let (old_from, old_to) = board_move(board, old, new);
+
+			macro_rules! repair {
+				() => {
+					board_set(board, old, old_from);
+					board_set(board, new, old_to);
+				}
+			}
 
 			score = match search(board, !black, depth + 1) {
 				Some(search) => search.0,
-				None => continue,
+				None => {
+					repair!();
+					continue;
+				},
 			};
+
 			// println!("Possible move:\n{}", board_string(&board));
 
-			let new = *board_get(board, pos_new);
-			board_set(board, pos_old, new);
-			board_set(board, pos_new, old);
+			repair!();
 
 			if (black && score > max_or_min) || (!black && score < max_or_min) {
 				max_or_min = score;
-				selected   = (pos_old, pos_new);
+				selected   = (old, new);
 				found      = true;
 			}
 		}

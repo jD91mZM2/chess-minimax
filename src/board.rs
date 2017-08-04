@@ -49,13 +49,13 @@ pub fn board_set(board: &mut Board, pos: (i8, i8), mut piece: Piece) {
 pub fn board_get(board: &Board, pos: (i8, i8)) -> &Piece {
 	&board[pos.1 as usize][pos.0 as usize]
 }
-pub fn board_move(board: &mut Board, from: (i8, i8), to: (i8, i8)) -> Piece {
+pub fn board_move(board: &mut Board, from: (i8, i8), to: (i8, i8)) -> (Piece, Piece) {
 	let piece = *board_get(board, from);
 	let old = *board_get(board, to);
 	board_set(board, to, piece);
 	board_set(board, from, Piece::Empty);
 
-	old
+	(piece, old)
 }
 
 pub fn possible_moves(board: &Board, black: bool) -> HashMap<(i8, i8), Vec<(i8, i8)>> {
