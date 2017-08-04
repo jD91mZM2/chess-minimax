@@ -8,7 +8,13 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 		for line in board {
 			for piece in line {
 				if piece.is_black() == black {
-					score += piece.worth() as i32;
+					if let Piece::King(_) = piece {
+						// Because otherwise taking the other king is more important than actually moving away.
+						// This is a cheap trick to make the king the most important character to protect.
+						score += 1000;
+					} else {
+						score += piece.worth() as i32;
+					}
 				} else {
 					score -= piece.worth() as i32;
 				}
