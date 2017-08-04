@@ -38,11 +38,11 @@ impl Piece {
 	}
 	pub fn is_black(&self) -> bool {
 		match *self {
-			Piece::King(black) => black,
-			Piece::Queen(black) => black,
-			Piece::Rook(black) => black,
-			Piece::Bishop(black) => black,
-			Piece::Knight(black) => black,
+			Piece::King(black) |
+			Piece::Queen(black) |
+			Piece::Rook(black) |
+			Piece::Bishop(black) |
+			Piece::Knight(black) |
 			Piece::Pawn(black) => black,
 			Piece::Empty => false,
 		}
@@ -50,20 +50,21 @@ impl Piece {
 
 	pub fn recursive(&self) -> bool {
 		match *self {
-			Piece::King(_) => false,
-			Piece::Queen(_) => true,
-			Piece::Rook(_) => true,
-			Piece::Bishop(_) => true,
-			Piece::Knight(_) => false,
-			Piece::Pawn(_) => false,
+			Piece::King(_) |
+			Piece::Knight(_) |
+			Piece::Pawn(_) |
 			Piece::Empty => false,
+
+			Piece::Queen(_) |
+			Piece::Rook(_) |
+			Piece::Bishop(_) => true,
 		}
 	}
 
 	pub fn moves(&self) -> Vec<(i8, i8)> {
 		// Returns DownRight
 		match *self {
-			Piece::King(_) => vec![(0, 1), (1, 1)],
+			Piece::King(_) |
 			Piece::Queen(_) => vec![(0, 1), (1, 1)],
 			Piece::Rook(_) => vec![(0, 1)],
 			Piece::Bishop(_) => vec![(1, 1)],
@@ -79,7 +80,7 @@ impl Piece {
 			Piece::King(_) => 100,
 			Piece::Queen(_) => 9,
 			Piece::Rook(_) => 5,
-			Piece::Bishop(_) => 3,
+			Piece::Bishop(_) |
 			Piece::Knight(_) => 3,
 			Piece::Pawn(_) => 1,
 			Piece::Empty => 0,

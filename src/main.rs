@@ -159,8 +159,8 @@ fn main() {
 			"move" => {
 				usage!(2, "move <from> <to>");
 
-				let from = parse_pos!(&args[0]);
-				let to = parse_pos!(&args[1]);
+				let from = parse_pos!(args[0]);
+				let to = parse_pos!(args[1]);
 
 				let (from_x, from_y) = from;
 				let (to_x, to_y) = to;
@@ -171,7 +171,7 @@ fn main() {
 			"possible" => {
 				usage!(1, "possible <pos>");
 
-				let pos = parse_pos!(&args[0]);
+				let pos = parse_pos!(args[0]);
 				let (x, y) = pos;
 
 				let possible = board[y as usize][x as usize].possible_moves(&board, pos);

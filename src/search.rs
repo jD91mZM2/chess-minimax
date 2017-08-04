@@ -26,7 +26,7 @@ pub fn search(board: &mut Board, black: bool, depth: u8) -> (i32, (i8, i8), (i8,
 
 	for ((x, y), moves2) in possible {
 		for (new_x, new_y) in moves2 {
-			let mut score;
+			let score;
 
 			let old = board[new_y as usize][new_x as usize];
 			board[new_y as usize][new_x as usize] = board[y as usize][x as usize];

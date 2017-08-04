@@ -46,7 +46,7 @@ pub fn possible_moves(board: &Board, black: bool) -> HashMap<(i8, i8), Vec<(i8, 
 			}
 
 			let pos = (x as i8, y as i8);
-			let moves = map.entry(pos).or_insert_with(|| Vec::new());
+			let moves = map.entry(pos).or_insert_with(Vec::new);
 
 			for m in piece.possible_moves(board, pos) {
 				moves.push(m);
