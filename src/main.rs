@@ -91,7 +91,7 @@ fn parse_position(input: &str) -> Option<(i8, i8)> {
 }
 
 fn main() {
-	let mut board = board::make_board();
+	let mut board = make_board();
 	let mut player = true;
 	let mut auto_player = None;
 
