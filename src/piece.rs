@@ -144,22 +144,26 @@ impl Piece {
 	}
 
 	pub fn possible_moves(&self, board: &Board, abs: (i8, i8)) -> Vec<(i8, i8)> {
+		// This is the most called function according to a profiler.
+		// I'm willing to pre-allocate too much if that means less allocations.
+
 		let (x, y) = abs;
 		let recursive = self.recursive();
 
-		let mut moves = Vec::new();
+		let moves = self.moves();
+		let mut possible_moves = Vec::with_capacity(moves.len() * 4);
 
-		for m in self.moves() {
-			for direction in &Direction::all() {
+		for m in moves {
+			for direction in &DIRECTIONS_ALL {
 				let (rel_x, rel_y) = rotate(m, direction);
 				let (mut new_x, mut new_y) = (rel_x, rel_y);
 
 				loop {
 					let abs = (x + new_x, y + new_y);
 
-					if moves.contains(&abs) {
+					if possible_moves.contains(&abs) {
 					} else if self.can_move(board, (new_x, new_y), abs) {
-						moves.push(abs);
+						possible_moves.push(abs);
 					} else {
 						break;
 					}
@@ -175,6 +179,6 @@ impl Piece {
 			}
 		}
 
-		moves
+		possible_moves
 	}
 }

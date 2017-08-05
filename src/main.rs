@@ -24,20 +24,17 @@ pub enum Direction {
 	DownRight,
 }
 
-impl Direction {
-	pub fn all() -> [Direction; 8] {
-		[
-			Direction::UpLeft,
-			Direction::UpRight,
-			Direction::LeftUp,
-			Direction::LeftDown,
-			Direction::RightUp,
-			Direction::RightDown,
-			Direction::DownLeft,
-			Direction::DownRight
-		]
-	}
-}
+const DIRECTIONS_ALL: [Direction; 8] = [
+	Direction::UpLeft,
+	Direction::UpRight,
+	Direction::LeftUp,
+	Direction::LeftDown,
+	Direction::RightUp,
+	Direction::RightDown,
+	Direction::DownLeft,
+	Direction::DownRight
+];
+
 
 pub fn rotate(rel: (i8, i8), direction: &Direction) -> (i8, i8) {
 	// Assumes current rotation is DownRight
