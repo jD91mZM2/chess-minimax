@@ -1,4 +1,4 @@
-use *;
+use ::*;
 use std::str::FromStr;
 
 pub struct NoSuchPieceErr;
@@ -122,7 +122,7 @@ impl Piece {
 			return false;
 		}
 
-		let piece = board_get(&board, abs);
+		let piece = board_get(board, abs);
 		if !piece.is_empty() && self.is_black() == piece.is_black() {
 			return false;
 		}

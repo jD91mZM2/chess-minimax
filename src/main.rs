@@ -161,7 +161,7 @@ fn main() {
 				let to = parse_pos!(args[1]);
 
 				if cmd == "move" {
-					let piece = *board_get(&mut board, from);
+					let piece = *board_get(&board, from);
 
 					let mut found = false;
 					for m in piece.possible_moves(&board, from) {
@@ -196,7 +196,7 @@ fn main() {
 			"clear" => {
 				usage!(0, "clear");
 
-				for line in board.iter_mut() {
+				for line in &mut board {
 					for piece in line.iter_mut() {
 						*piece = Piece::Empty;
 					}
@@ -210,7 +210,7 @@ fn main() {
 			"score" => {
 				usage!(0, "score");
 
-				println!("{}", score(&mut board, player));
+				println!("{}", score(&board, player));
 			}
 			"possible" => {
 				usage!(1, "possible <pos>");
