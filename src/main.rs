@@ -1,3 +1,8 @@
+#[cfg(feature = "cpuprofiler")]
+extern crate cpuprofiler;
+#[cfg(feature = "cpuprofiler")]
+use cpuprofiler::PROFILER;
+
 mod board;
 mod piece;
 mod search;
@@ -248,7 +253,13 @@ fn main() {
 			"best" => {
 				usage!(0, "best");
 
+				#[cfg(feature = "cpuprofiler")]
+				PROFILER.lock().unwrap().start("crappy-chess-minimax.profile").unwrap();
+
 				let (mut score, from, to) = search(&mut board, player, 0);
+
+				#[cfg(feature = "cpuprofiler")]
+				PROFILER.lock().unwrap().stop().unwrap();
 
 				board_move(&mut board, from, to);
 
