@@ -1,4 +1,4 @@
-use ::*;
+use *;
 
 const MAX_DEPTH: u8 = 4;
 

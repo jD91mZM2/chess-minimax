@@ -1,4 +1,4 @@
-use ::*;
+use *;
 use std::collections::HashMap;
 
 macro_rules! white {
