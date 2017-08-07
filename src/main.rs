@@ -292,6 +292,7 @@ fn main() {
 				player = new_player;
 			},
 			"play" => {
+				usage!(0, "play");
 				auto_player = Some(false);
 			}
 			_ => eprintln!("Unknown command"),
