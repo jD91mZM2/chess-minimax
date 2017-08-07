@@ -22,7 +22,7 @@ pub fn score(board: &Board) -> i32 {
 
 	score
 }
-pub fn search(board: &mut Board, mine: bool, depth: u8) -> (i32, (i8, i8), (i8, i8)) {
+pub fn search(board: &mut Board, mine: bool, depth: u8, mut alpha: i32, mut beta: i32) -> (i32, (i8, i8), (i8, i8)) {
 	if depth > MAX_DEPTH {
 		return (score(board), (0, 0), (0, 0));
 	}
@@ -40,7 +40,7 @@ pub fn search(board: &mut Board, mine: bool, depth: u8) -> (i32, (i8, i8), (i8, 
 			// it wouldn't undo Pawn -> Queen.
 			let (old_from, old_to) = board_move(board, old, new);
 
-			score = search(board, !mine, depth + 1).0;
+			score = search(board, !mine, depth + 1, alpha, beta).0;
 
 			// println!("Possible move:\n{}", board_string(&board));
 
@@ -51,6 +51,15 @@ pub fn search(board: &mut Board, mine: bool, depth: u8) -> (i32, (i8, i8), (i8, 
 				max_or_min = score;
 				selected   = (old, new);
 				found      = true;
+
+				if mine && max_or_min > alpha {
+					alpha = max_or_min;
+				} else if !mine && max_or_min < beta {
+					beta = max_or_min;
+				}
+				if beta <= alpha {
+					break;
+				}
 			}
 		}
 	}

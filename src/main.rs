@@ -250,7 +250,7 @@ fn main() {
 				#[cfg(feature = "cpuprofiler")]
 				PROFILER.lock().unwrap().start("crappy-chess-minimax.profile").unwrap();
 
-				let (score, from, to) = search(&mut board, true, 0);
+				let (score, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
 
 				#[cfg(feature = "cpuprofiler")]
 				PROFILER.lock().unwrap().stop().unwrap();
