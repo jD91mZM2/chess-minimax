@@ -1,12 +1,12 @@
 use *;
 use std::collections::HashMap;
 
-macro_rules! white {
+macro_rules! your {
 	($name:ident) => {
 		Piece::$name(false)
 	}
 }
-macro_rules! black {
+macro_rules! mine {
 	($name:ident) => {
 		Piece::$name(true)
 	}
@@ -22,7 +22,10 @@ pub type Board = [[Piece; 8]; 8];
 pub fn board_string(board: &Board) -> String {
 	let mut output = String::new();
 
+	#[cfg(not(feature = "white"))]
 	output.push_str("  H G F E D C B A\n");
+	#[cfg(feature = "white")]
+	output.push_str("  A B C D E F G H\n");
 	for (i, line) in board.iter().enumerate() {
 		output.push_str(&(i + 1).to_string());
 		output.push(' ');
@@ -37,11 +40,11 @@ pub fn board_string(board: &Board) -> String {
 }
 
 pub fn board_set(board: &mut Board, pos: (i8, i8), mut piece: Piece) {
-	if let Piece::Pawn(black) = piece {
-		if (black && pos.1 == 0) ||
-			(!black && pos.1 == 7) {
+	if let Piece::Pawn(mine) = piece {
+		if (mine && pos.1 == 0) ||
+			(!mine && pos.1 == 7) {
 
-			piece = Piece::Queen(black);
+			piece = Piece::Queen(mine);
 		}
 	}
 	board[pos.1 as usize][pos.0 as usize] = piece;
@@ -58,12 +61,12 @@ pub fn board_move(board: &mut Board, from: (i8, i8), to: (i8, i8)) -> (Piece, Pi
 	(piece, old)
 }
 
-pub fn possible_moves(board: &Board, black: bool) -> HashMap<(i8, i8), Vec<(i8, i8)>> {
+pub fn possible_moves(board: &Board, mine: bool) -> HashMap<(i8, i8), Vec<(i8, i8)>> {
 	let mut map = HashMap::new();
 
 	for (y, line) in board.iter().enumerate() {
 		for (x, piece) in line.iter().enumerate() {
-			if piece.is_black() != black || piece.is_empty() {
+			if piece.is_mine() != mine || piece.is_empty() {
 				continue;
 			}
 
@@ -81,13 +84,13 @@ pub fn possible_moves(board: &Board, black: bool) -> HashMap<(i8, i8), Vec<(i8, 
 
 pub fn is_check(
 			board: &Board,
-			black: bool,
+			mine: bool,
 			possible: &HashMap<(i8, i8), Vec<(i8, i8)>>
 		) -> bool {
 	for moves in possible.values() {
 		for pos in moves {
-			if let Piece::King(black2) = *board_get(board, *pos) {
-				if black == black2 {
+			if let Piece::King(mine2) = *board_get(board, *pos) {
+				if mine == mine2 {
 					return true;
 				}
 			}
@@ -109,13 +112,21 @@ pub fn get_check(board: &Board) -> Option<bool> {
 
 pub fn make_board() -> Board {
 	[
-		[ white!(Rook), white!(Knight), white!(Bishop), white!(King), white!(Queen), white!(Bishop), white!(Knight), white!(Rook) ],
-		[ white!(Pawn), white!(Pawn),   white!(Pawn),   white!(Pawn), white!(Pawn),  white!(Pawn),   white!(Pawn),   white!(Pawn) ],
-		[ none!(),      none!(),        none!(),        none!(),      none!(),       none!(),        none!(),        none!()      ],
-		[ none!(),      none!(),        none!(),        none!(),      none!(),       none!(),        none!(),        none!()      ],
-		[ none!(),      none!(),        none!(),        none!(),      none!(),       none!(),        none!(),        none!()      ],
-		[ none!(),      none!(),        none!(),        none!(),      none!(),       none!(),        none!(),        none!()      ],
-		[ black!(Pawn), black!(Pawn),   black!(Pawn),   black!(Pawn), black!(Pawn),  black!(Pawn),   black!(Pawn),   black!(Pawn) ],
-		[ black!(Rook), black!(Knight), black!(Bishop), black!(King), black!(Queen), black!(Bishop), black!(Knight), black!(Rook) ],
+		#[cfg(not(feature = "white"))]
+		[ your!(Rook), your!(Knight), your!(Bishop), your!(Queen), your!(King), your!(Bishop), your!(Knight), your!(Rook) ],
+		#[cfg(feature = "white")]
+		[ your!(Rook), your!(Knight), your!(Bishop), your!(King), your!(Queen), your!(Bishop), your!(Knight), your!(Rook) ],
+
+		[ your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn) ],
+		[ none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!()     ],
+		[ none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!()     ],
+		[ none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!()     ],
+		[ none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!()     ],
+		[ mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn) ],
+
+		#[cfg(not(feature = "white"))]
+		[ mine!(Rook), mine!(Knight), mine!(Bishop), mine!(Queen), mine!(King), mine!(Bishop), mine!(Knight), mine!(Rook) ],
+		#[cfg(feature = "white")]
+		[ mine!(Rook), mine!(Knight), mine!(Bishop), mine!(King), mine!(Queen), mine!(Bishop), mine!(Knight), mine!(Rook) ],
 	]
 }

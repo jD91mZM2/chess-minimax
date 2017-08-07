@@ -94,29 +94,26 @@ fn parse_position(input: &str) -> Option<(i8, i8)> {
 
 fn main() {
 	let mut board = make_board();
-	let mut player = true;
-	let mut auto_player = None;
 
 	loop {
 		println!();
+		#[cfg(not(feature = "white"))]
 		match get_check(&board) {
 			None => {},
 			Some(false) => println!("WHITE CHECKED\n"),
 			Some(true) => println!("BLACK CHECKED\n"),
 		}
+		#[cfg(feature = "white")]
+		match get_check(&board) {
+			None => {},
+			Some(true) => println!("WHITE CHECKED\n"),
+			Some(false) => println!("BLACK CHECKED\n"),
+		}
 		println!("{}", board::board_string(&board));
 
-		println!("Commands: move(f), spawn, clear, reset, score, possible, all, best, setplayer");
+		println!("Commands: move(f), spawn, clear, reset, score, possible, all, best");
 		print!("> ");
 		io::stdout().flush().unwrap();
-
-		if let Some(ref mut auto_player) = auto_player {
-			let (_, from, to) = search(&mut board, *auto_player, 0);
-			*auto_player = !*auto_player;
-
-			board_move(&mut board, from, to);
-			continue;
-		}
 
 		let mut cmd = String::new();
 		match io::stdin().read_line(&mut cmd) {
@@ -212,7 +209,7 @@ fn main() {
 			"score" => {
 				usage!(0, "score");
 
-				println!("{}", score(&board, player));
+				println!("{}", score(&board));
 			}
 			"possible" => {
 				usage!(1, "possible <pos>");
@@ -230,7 +227,7 @@ fn main() {
 			"all" => {
 				usage!(0, "all");
 
-				let possible = possible_moves(&board, player);
+				let possible = possible_moves(&board, true);
 				if possible.is_empty() {
 					println!("No possible moves");
 					continue;
@@ -253,14 +250,13 @@ fn main() {
 				#[cfg(feature = "cpuprofiler")]
 				PROFILER.lock().unwrap().start("crappy-chess-minimax.profile").unwrap();
 
-				let (mut score, from, to) = search(&mut board, player, 0);
+				let (score, from, to) = search(&mut board, true, 0);
 
 				#[cfg(feature = "cpuprofiler")]
 				PROFILER.lock().unwrap().stop().unwrap();
 
 				board_move(&mut board, from, to);
 
-				score = if player { score } else { -score };
 				println!("Final Score: {}", score);
 
 				let mut string = String::with_capacity(2 + 4 + 2);
@@ -269,32 +265,6 @@ fn main() {
 				position_string(to, &mut string);
 				println!("Move {}", string);
 			},
-			"setplayer" => {
-				usage!(1, "setplayer <white/black>");
-
-				let new_player;
-				match args[0] {
-					"white" => {
-						new_player = false;
-					},
-					"black" => {
-						new_player = true;
-					},
-					_ => {
-						eprintln!("No such player");
-						continue;
-					}
-				}
-
-				if new_player == player {
-					continue;
-				}
-				player = new_player;
-			},
-			"play" => {
-				usage!(0, "play");
-				auto_player = Some(false);
-			}
 			_ => eprintln!("Unknown command"),
 		}
 	}

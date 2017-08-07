@@ -18,40 +18,56 @@ impl FromStr for Piece {
 	type Err = NoSuchPieceErr;
 
 	fn from_str(input: &str) -> Result<Self, Self::Err> {
-		Ok(match input {
-			"blackking" => Piece::King(true),
-			"whiteking" => Piece::King(false),
-			"blackqueen" => Piece::Queen(true),
-			"whitequeen" => Piece::Queen(false),
-			"blackrook" => Piece::Rook(true),
-			"whiterook" => Piece::Rook(false),
-			"blackbishop" => Piece::Bishop(true),
-			"whitebishop" => Piece::Bishop(false),
-			"blackknight" => Piece::Knight(true),
-			"whiteknight" => Piece::Knight(false),
-			"blackpawn" => Piece::Pawn(true),
-			"whitepawn" => Piece::Pawn(false),
-			_ => return Err(NoSuchPieceErr),
-		})
+		macro_rules! from_str {
+			($mine:expr, $your:expr) => {
+				Ok(match input {
+					concat!($mine, "king") => Piece::King(true),
+					concat!($your, "king") => Piece::King(false),
+					concat!($mine, "queen") => Piece::Queen(true),
+					concat!($your, "queen") => Piece::Queen(false),
+					concat!($mine, "rook") => Piece::Rook(true),
+					concat!($your, "rook") => Piece::Rook(false),
+					concat!($mine, "bishop") => Piece::Bishop(true),
+					concat!($your, "bishop") => Piece::Bishop(false),
+					concat!($mine, "knight") => Piece::Knight(true),
+					concat!($your, "knight") => Piece::Knight(false),
+					concat!($mine, "pawn") => Piece::Pawn(true),
+					concat!($your, "pawn") => Piece::Pawn(false),
+					_ => return Err(NoSuchPieceErr),
+				})
+			}
+		}
+		#[cfg(not(feature = "white"))]
+		return from_str!("black", "white");
+		#[cfg(feature = "white")]
+		from_str!("white", "black")
 	}
 }
 impl Piece {
 	pub fn to_char(&self) -> char {
-		match *self {
-			Piece::King(false) => '♚',
-			Piece::King(true) => '♔',
-			Piece::Queen(false) => '♛',
-			Piece::Queen(true) => '♕',
-			Piece::Rook(false) => '♜',
-			Piece::Rook(true) => '♖',
-			Piece::Bishop(false) => '♝',
-			Piece::Bishop(true) => '♗',
-			Piece::Knight(false) => '♞',
-			Piece::Knight(true) => '♘',
-			Piece::Pawn(false) => '♟',
-			Piece::Pawn(true) => '♙',
-			Piece::Empty => ' ',
+		macro_rules! to_char {
+			($i_am_black:expr, $i_am_white:expr) => {
+				match *self {
+					Piece::King($i_am_white) => '♚',
+					Piece::King($i_am_black) => '♔',
+					Piece::Queen($i_am_white) => '♛',
+					Piece::Queen($i_am_black) => '♕',
+					Piece::Rook($i_am_white) => '♜',
+					Piece::Rook($i_am_black) => '♖',
+					Piece::Bishop($i_am_white) => '♝',
+					Piece::Bishop($i_am_black) => '♗',
+					Piece::Knight($i_am_white) => '♞',
+					Piece::Knight($i_am_black) => '♘',
+					Piece::Pawn($i_am_white) => '♟',
+					Piece::Pawn($i_am_black) => '♙',
+					Piece::Empty => ' ',
+				}
+			}
 		}
+		#[cfg(not(feature = "white"))]
+		return to_char!(true, false);
+		#[cfg(feature = "white")]
+		to_char!(false, true)
 	}
 
 	pub fn is_empty(&self) -> bool {
@@ -60,14 +76,14 @@ impl Piece {
 			_ => false,
 		}
 	}
-	pub fn is_black(&self) -> bool {
+	pub fn is_mine(&self) -> bool {
 		match *self {
-			Piece::King(black) |
-			Piece::Queen(black) |
-			Piece::Rook(black) |
-			Piece::Bishop(black) |
-			Piece::Knight(black) |
-			Piece::Pawn(black) => black,
+			Piece::King(mine) |
+			Piece::Queen(mine) |
+			Piece::Rook(mine) |
+			Piece::Bishop(mine) |
+			Piece::Knight(mine) |
+			Piece::Pawn(mine) => mine,
 			Piece::Empty => false,
 		}
 	}
@@ -123,17 +139,17 @@ impl Piece {
 		}
 
 		let piece = board_get(board, abs);
-		if !piece.is_empty() && self.is_black() == piece.is_black() {
+		if !piece.is_empty() && self.is_mine() == piece.is_mine() {
 			return false;
 		}
 
 		match *self {
-			Piece::Pawn(black) => {
-				(black == (rel_y < 0)) &&
+			Piece::Pawn(mine) => {
+				(mine == (rel_y < 0)) &&
 					(rel_x.abs() != 2) &&
 					(rel_y.abs() != 2 ||
-						(((!black && y == 3) ||
-						(black && y == 4)) &&
+						(((!mine && y == 3) ||
+						(mine && y == 4)) &&
 						((rel_y == 2 && board_get(board, (x, y - 1)).is_empty()) ||
 						 (rel_y == -2 && board_get(board, (x, y + 1)).is_empty())))) &&
 					((rel_x.abs() == 0) == piece.is_empty()) &&
