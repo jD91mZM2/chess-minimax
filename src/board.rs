@@ -113,9 +113,9 @@ pub fn get_check(board: &Board) -> Option<bool> {
 pub fn make_board() -> Board {
 	[
 		#[cfg(not(feature = "white"))]
-		[ your!(Rook), your!(Knight), your!(Bishop), your!(Queen), your!(King), your!(Bishop), your!(Knight), your!(Rook) ],
-		#[cfg(feature = "white")]
 		[ your!(Rook), your!(Knight), your!(Bishop), your!(King), your!(Queen), your!(Bishop), your!(Knight), your!(Rook) ],
+		#[cfg(feature = "white")]
+		[ your!(Rook), your!(Knight), your!(Bishop), your!(Queen), your!(King), your!(Bishop), your!(Knight), your!(Rook) ],
 
 		[ your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn), your!(Pawn) ],
 		[ none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!(),     none!()     ],
@@ -125,8 +125,8 @@ pub fn make_board() -> Board {
 		[ mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn), mine!(Pawn) ],
 
 		#[cfg(not(feature = "white"))]
-		[ mine!(Rook), mine!(Knight), mine!(Bishop), mine!(Queen), mine!(King), mine!(Bishop), mine!(Knight), mine!(Rook) ],
-		#[cfg(feature = "white")]
 		[ mine!(Rook), mine!(Knight), mine!(Bishop), mine!(King), mine!(Queen), mine!(Bishop), mine!(Knight), mine!(Rook) ],
+		#[cfg(feature = "white")]
+		[ mine!(Rook), mine!(Knight), mine!(Bishop), mine!(Queen), mine!(King), mine!(Bishop), mine!(Knight), mine!(Rook) ],
 	]
 }
