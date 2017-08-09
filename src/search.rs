@@ -33,7 +33,11 @@ pub fn search(board: &mut Board, mine: bool, depth: u8, mut alpha: i32, mut beta
 	let mut found      = false;
 
 	for (old, moves2) in possible {
-		for new in moves2 {
+		for new in &moves2 {
+			let new = match *new {
+				Some(new) => new,
+				None => continue,
+			};
 			let score;
 
 			// It *could* only return old_to, but then

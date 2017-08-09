@@ -56,8 +56,8 @@ fn position_string(input: (i8, i8), output: &mut String) {
 	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
 	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
 }
-fn positions_join<'a, I: Iterator<Item = &'a (i8, i8)>>(input: I, len: usize) -> String {
-	let mut output = String::with_capacity(len * (2 + 2) - 2);
+fn positions_join<'a, I: Iterator<Item = (i8, i8)>>(input: I) -> String {
+	let mut output = String::new();
 	let mut first  = true;
 
 	for pos in input {
@@ -67,7 +67,7 @@ fn positions_join<'a, I: Iterator<Item = &'a (i8, i8)>>(input: I, len: usize) ->
 			output.push_str(", ");
 		}
 
-		position_string(*pos, &mut output)
+		position_string(pos, &mut output)
 	}
 
 	output
@@ -163,8 +163,8 @@ fn main() {
 					let piece = *board_get(&board, from);
 
 					let mut found = false;
-					for m in piece.possible_moves(&board, from) {
-						if m == to {
+					for m in &piece.possible_moves(&board, from) {
+						if *m == Some(to) {
 							found = true;
 						}
 					}
@@ -222,7 +222,11 @@ fn main() {
 					continue;
 				}
 
-				println!("{}", positions_join(possible.iter(), possible.len()));
+				println!("{}", positions_join(
+					possible.iter()
+						.filter(|pos| pos.is_some())
+						.map(|pos| pos.unwrap())
+				));
 			},
 			"all" => {
 				usage!(0, "all");
@@ -241,7 +245,11 @@ fn main() {
 					let mut pos = String::with_capacity(2);
 					position_string((x, y), &mut pos);
 
-					println!("{}: {}", pos, positions_join(moves.iter(), moves.len()));
+					println!("{}: {}", pos, positions_join(
+						moves.iter()
+							.filter(|pos| pos.is_some())
+							.map(|pos| pos.unwrap())
+					));
 				}
 			},
 			"best" => {

@@ -101,16 +101,16 @@ impl Piece {
 		}
 	}
 
-	pub fn moves(&self) -> Vec<(i8, i8)> {
+	pub fn moves(&self) -> [Option<(i8, i8)>; 3] {
 		// Returns DownRight
 		match *self {
 			Piece::King(_) |
-			Piece::Queen(_) => vec![(0, 1), (1, 1)],
-			Piece::Rook(_) => vec![(0, 1)],
-			Piece::Bishop(_) => vec![(1, 1)],
-			Piece::Knight(_) => vec![(1, 2)],
-			Piece::Pawn(_) => vec![(0, 1), (1, 1), (0, 2)],
-			Piece::Empty => vec![],
+			Piece::Queen(_) =>  [ Some((0, 1)), Some((1, 1)), None         ],
+			Piece::Rook(_) =>   [ Some((0, 1)), None,         None         ],
+			Piece::Bishop(_) => [ Some((1, 1)), None,         None         ],
+			Piece::Knight(_) => [ Some((1, 2)), None,         None         ],
+			Piece::Pawn(_) =>   [ Some((0, 1)), Some((1, 1)), Some((0, 2)) ],
+			Piece::Empty =>     [ None,         None,         None         ],
 		}
 	}
 
@@ -159,7 +159,7 @@ impl Piece {
 		}
 	}
 
-	pub fn possible_moves(&self, board: &Board, abs: (i8, i8)) -> Vec<(i8, i8)> {
+	pub fn possible_moves(&self, board: &Board, abs: (i8, i8)) -> [Option<(i8, i8)>; 24] {
 		// This is the most called function according to a profiler.
 		// I'm willing to pre-allocate too much if that means less allocations.
 
@@ -167,9 +167,17 @@ impl Piece {
 		let recursive = self.recursive();
 
 		let moves = self.moves();
-		let mut possible_moves = Vec::with_capacity(moves.len() * 4);
+		// moves is max 3.
+		// DIRECTIONS_ALL is always 8.
+		// 3 * 8 = 24
+		let mut possible_moves = [None; 24];
+		let mut index = 0;
 
-		for m in moves {
+		for m in &moves {
+			let m = match *m {
+				Some(m) => m,
+				None => continue,
+			};
 			for direction in &DIRECTIONS_ALL {
 				let (rel_x, rel_y) = rotate(m, direction);
 				let (mut new_x, mut new_y) = (rel_x, rel_y);
@@ -177,9 +185,10 @@ impl Piece {
 				loop {
 					let abs = (x + new_x, y + new_y);
 
-					if possible_moves.contains(&abs) {
+					if possible_moves.contains(&Some(abs)) {
 					} else if self.can_move(board, (new_x, new_y), abs) {
-						possible_moves.push(abs);
+						possible_moves[index] = Some(abs);
+						index += 1;
 					} else {
 						break;
 					}
