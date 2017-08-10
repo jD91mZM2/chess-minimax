@@ -217,7 +217,7 @@ fn main() {
 				let pos = parse_pos!(args[0]);
 
 				let possible = (*board_get(&board, pos)).possible_moves(&board, pos);
-				if possible.is_empty() {
+				if possible.iter().all(|pos| pos.is_none()) {
 					println!("No possible moves");
 					continue;
 				}
