@@ -1,4 +1,4 @@
-// use *;
+use *;
 use std::{self, thread};
 use std::time::Duration;
 use websocket::OwnedMessage;
@@ -31,15 +31,25 @@ pub fn main() {
 			};
 			println!("Connection!");
 
+			macro_rules! close {
+				($code:expr, $msg:expr) => {
+					let _ = client.send_message(&OwnedMessage::Close(
+						Some(CloseData::new($code, $msg))
+					));
+				}
+			}
+			macro_rules! bad_request {
+				() => {
+					close!(400, "Bad request".to_string());
+				}
+			}
 			macro_rules! attempt {
 				($result:expr, $action:expr) => {
 					match $result {
 						Ok(ok) => ok,
 						Err(err) => {
-							let _ = client.send_message(&OwnedMessage::Close(Some(CloseData::new(500,
-								"Sorry - my bad. But something went wrong.!".to_string()
-							))));
 							print_err!(err, $action);
+							close!(500, "Sorry - my bad. But something went wrong.!".to_string());
 							return;
 						},
 					}
@@ -68,6 +78,7 @@ pub fn main() {
 				let init = receive!();
 				let mut init = init.split_whitespace();
 				if init.next() != Some("INIT") {
+					bad_request!();
 					return;
 				}
 				if init.next() != Some("v0") {
@@ -79,7 +90,98 @@ pub fn main() {
 			}
 			attempt!(client.stream_ref().set_read_timeout(Some(Duration::from_secs(2*60))), "setting timeout");
 
-			// let mut board = make_board();
+			let mut board = make_board();
+			#[cfg(feature = "white")]
+			{
+				usage!(0, "best");
+
+				let (score, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
+				board_move(&mut board, from, to);
+
+				send!(format!("WHITE MOVE {} {} {} {}", from.0, from.1, to.0, to.1));
+			}
+			#[cfg(not(feature = "white"))]
+			send!("BLACK".to_string());
+
+			let mut castling = 0;
+			loop {
+				let message = receive!();
+				let mut args = message.split_whitespace();
+				let cmd = match args.next() {
+					Some(cmd) => cmd,
+					None => {
+						bad_request!();
+						return;
+					}
+				};
+				let args = args.collect::<Vec<&str>>();
+
+				macro_rules! check_len {
+					($expected:expr) => {
+						if args.len() != $expected {
+							bad_request!();
+							return;
+						}
+					}
+				}
+				macro_rules! parse {
+					($str:expr) => {
+						match $str.parse::<i8>() {
+							Ok(result)
+								if result >= 0 && result < 8
+									=> result,
+							_ => {
+								bad_request!();
+								return;
+							},
+						}
+					}
+				}
+
+				if cmd != "MOVE" && castling != 0 {
+					bad_request!();
+					return;
+				}
+				match cmd {
+					"SWAP" => {
+						check_len!(0);
+						send!(REFUSE.to_string())
+					},
+					"MOVE" => {
+						check_len!(4);
+						let from = (parse!(args[0]), parse!(args[1]));
+						let to   = (parse!(args[2]), parse!(args[3]));
+
+						match do_move(from, to, &mut board, castling != 0) {
+							MoveResult::Accept if castling == 0 => {
+								send!(ACCEPT.to_string());
+
+								let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
+								board_move(&mut board, from, to);
+
+								send!(format!("MOVE {} {} {} {}", from.0, from.1, to.0, to.1));
+							}
+							MoveResult::Accept => {},
+							MoveResult::Check((x, y)) => {
+								send!(REFUSE.to_string());
+								send!(format!("HIGHLIGHT {} {}", x, y));
+							},
+							MoveResult::Refuse => send!(REFUSE.to_string()),
+						}
+						if castling > 0 {
+							castling -= 1;
+						}
+					},
+					"CASTLING" => {
+						check_len!(0);
+						castling = 2;
+					},
+					_ => {
+						bad_request!();
+						return;
+					}
+				}
+			}
 		});
 	}
 }
@@ -93,6 +195,41 @@ fn receive(client: &mut Client<TcpStream>) -> Result<Option<String>, Box<std::er
 		OwnedMessage::Text(text) => Ok(Some(text)),
 		_ => Ok(None),
 	}
+}
+
+enum MoveResult {
+	Accept,
+	Check((i8, i8)),
+	Refuse
+}
+fn do_move(from: (i8, i8), to: (i8, i8), board: &mut Board, force: bool) -> MoveResult {
+	if !force {
+		let piece = *board_get(&board, from);
+
+		let mut found = false;
+		for m in &piece.possible_moves(&board, from) {
+			if *m == Some(to) {
+				found = true;
+			}
+		}
+
+		if !found {
+			return MoveResult::Refuse;
+		}
+	}
+
+	let (old_from, old_to) = board_move(board, from, to);
+
+	if !force {
+		let possible = possible_moves(&board, true);
+		if let Some(piece) = get_check(&board, false, &possible) {
+			board_set(board, from, old_from);
+			board_set(board, to, old_to);
+
+			return MoveResult::Check(piece);
+		}
+	}
+	MoveResult::Accept
 }
 /*
 #[cfg(not(feature = "white"))]
