@@ -4,7 +4,8 @@ version = "0.1.0"
 authors = ["LEGOlord208 <LEGOlord208@krake.one>"]
 
 [dependencies]
-cpuprofiler = { version = "0.0", optional = true }
+cpuprofiler = { version = "0.0",  optional = true }
+websocket   = { version = "0.20", optional = true }
 
 [features]
 white = []
