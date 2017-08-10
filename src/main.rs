@@ -98,13 +98,13 @@ fn main() {
 	loop {
 		println!();
 		#[cfg(not(feature = "white"))]
-		match get_check(&board) {
+		match check_status(&board) {
 			None => {},
 			Some(false) => println!("WHITE CHECKED\n"),
 			Some(true) => println!("BLACK CHECKED\n"),
 		}
 		#[cfg(feature = "white")]
-		match get_check(&board) {
+		match check_status(&board) {
 			None => {},
 			Some(true) => println!("WHITE CHECKED\n"),
 			Some(false) => println!("BLACK CHECKED\n"),
@@ -156,10 +156,12 @@ fn main() {
 			"move" | "movef" => {
 				usage!(2, "move(f) <from> <to>");
 
+				let force = cmd == "movef";
+
 				let from = parse_pos!(args[0]);
 				let to = parse_pos!(args[1]);
 
-				if cmd == "move" {
+				if !force {
 					let piece = *board_get(&board, from);
 
 					let mut found = false;
@@ -176,7 +178,19 @@ fn main() {
 					}
 				}
 
-				board_move(&mut board, from, to);
+				let (old_from, old_to) = board_move(&mut board, from, to);
+
+				if !force {
+					let possible = possible_moves(&board, true);
+					if get_check(&board, false, &possible).is_some() {
+						eprintln!("Can't move there! You'd place yourself in check!");
+						eprintln!("TIP: movef moves without checking first.");
+
+						board_set(&mut board, from, old_from);
+						board_set(&mut board, to, old_to);
+						continue;
+					}
+				}
 			},
 			"spawn" => {
 				usage!(2, "spawn <position> <piece>");

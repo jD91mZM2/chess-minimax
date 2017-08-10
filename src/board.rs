@@ -78,12 +78,12 @@ pub fn possible_moves(board: &Board, mine: bool) -> HashMap<(i8, i8), [Option<(i
 	map
 }
 
-pub fn is_check(
+pub fn get_check(
 			board: &Board,
 			mine: bool,
 			possible: &HashMap<(i8, i8), [Option<(i8, i8)>; 24]>
-		) -> bool {
-	for moves in possible.values() {
+		) -> Option<(i8, i8)> {
+	for (from, moves) in possible {
 		for pos in moves {
 			let pos = match *pos {
 				Some(pos) => pos,
@@ -91,19 +91,19 @@ pub fn is_check(
 			};
 			if let Piece::King(mine2) = *board_get(board, pos) {
 				if mine == mine2 {
-					return true;
+					return Some(*from);
 				}
 			}
 		}
 	}
 
-	false
+	None
 }
-pub fn get_check(board: &Board) -> Option<bool> {
-	if is_check(board, false, &possible_moves(board, true)) {
+pub fn check_status(board: &Board) -> Option<bool> {
+	if get_check(board, false, &possible_moves(board, true)).is_some() {
 		return Some(false);
 	}
-	if is_check(board, true, &possible_moves(board, false)) {
+	if get_check(board, true, &possible_moves(board, false)).is_some() {
 		return Some(true);
 	}
 
