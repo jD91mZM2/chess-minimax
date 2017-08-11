@@ -16,6 +16,7 @@ macro_rules! print_err {
 }
 
 const IP_PORT: (&str, u16) = ("localhost", 1234);
+const VERSION: &str = "v1";
 const ACCEPT: &str = "ACCEPT";
 const REFUSE: &str = "REFUSE";
 
@@ -82,7 +83,7 @@ pub fn main() {
 					bad_request!();
 					return;
 				}
-				if init.next() != Some("v0") {
+				if init.next() != Some(VERSION) {
 					send!(REFUSE.to_string());
 					continue;
 				}
