@@ -58,11 +58,6 @@ fn rotate(rel: (i8, i8), direction: &Direction) -> (i8, i8) {
 }
 
 #[cfg(not(feature = "websocket"))]
-fn position_string(input: (i8, i8), output: &mut String) {
-	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
-	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
-}
-#[cfg(not(feature = "websocket"))]
 fn positions_join<'a, I: Iterator<Item = (i8, i8)>>(input: I) -> String {
 	let mut output = String::new();
 	let mut first  = true;
@@ -78,6 +73,18 @@ fn positions_join<'a, I: Iterator<Item = (i8, i8)>>(input: I) -> String {
 	}
 
 	output
+}
+#[cfg(not(feature = "websocket"))]
+fn position_string(input: (i8, i8), output: &mut String) {
+	#[cfg(not(feature = "white"))]
+	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
+	#[cfg(feature = "white")]
+	output.push(std::char::from_u32(input.0 as u32 + 'A' as u32).unwrap());
+
+	#[cfg(not(feature = "white"))]
+	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
+	#[cfg(feature = "white")]
+	output.push(std::char::from_u32((7 - input.1) as u32 + '1' as u32).unwrap());
 }
 #[cfg(not(feature = "websocket"))]
 fn parse_position(input: &str) -> Option<(i8, i8)> {
