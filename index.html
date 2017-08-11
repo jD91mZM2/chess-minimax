@@ -12,6 +12,10 @@
 				top: calc(50% - 200px);
 				left: calc(50% - 200px);
 			}
+			#board .highlight {
+				background: yellow;
+				transition: background 1s;
+			}
 		</style>
 	</head>
 	<body>
@@ -49,6 +53,11 @@
 					position: "start",
 					draggable: true,
 					onDrop: function(source, target, piece, newPos, oldPos, orientation) {
+						if (waiting) {
+							return 'snapback';
+						}
+
+						waiting = true;
 						undo = oldPos;
 						source = decode(source);
 						target = decode(target);
@@ -57,28 +66,36 @@
 				});
 			}
 
+			var waiting = false;
+
 			function command(args) {
+				$(".highlight").removeClass("highlight");
+
 				var cmd = args.shift();
 				switch (cmd) {
 				case "ACCEPT":
 					break;
 				case "REFUSE":
 					board.position(undo);
+					waiting = false;
 					break;
 				case "BLACK":
-					console.log("I'm playing white!");
 					init();
 					break;
 				case "WHITE":
-					console.log("I'm playing black!");
 					init();
 					board.flip();
 					command(args);
 					break;
 				case "MOVE":
-					console.log("Move (" + args[0] + ", " + args[1] + ") to (" + args[2] + ", " + args[3] + ")");
-					console.log(encode(args.slice(0, 2)) + "-" + encode(args.slice(2, 4)));
 					board.move(encode(args.slice(0, 2)) + "-" + encode(args.slice(2, 4)));
+					waiting = false;
+					break;
+				case "HIGHLIGHT":
+					$(".square-" + encode(args)).addClass("highlight");
+					break;
+				case "INTO-QUEEN":
+					// TODO!
 					break;
 				}
 			}
