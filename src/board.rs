@@ -66,7 +66,7 @@ pub fn board_move(board: &mut Board, from: (i8, i8), to: (i8, i8)) -> (Piece, Pi
 	let old = *board_get(board, to);
 
 	let mut changed = board_set(board, to, piece);
-	changed = changed || board_set(board, from, Piece::Empty);
+	changed = board_set(board, from, Piece::Empty) || changed;
 
 	(piece, old, changed)
 }
