@@ -25,7 +25,8 @@
 		<script src="js/jquery-3.2.1.min.js"></script>
 		<script src="js/chessboard-0.3.0.min.js"></script>
 		<script>
-			var socket = new WebSocket("ws://localhost:1234", "chess");
+			var server = prompt("Server?", "localhost")
+			var socket = new WebSocket("ws://" + server + ":27455/", "chess");
 			socket.onopen = function (event) {
 				socket.send("INIT v1");
 			}
