@@ -71,7 +71,7 @@ pub fn board_move(board: &mut Board, from: (i8, i8), to: (i8, i8)) -> (Piece, Pi
 	(piece, old, changed)
 }
 
-pub fn possible_moves(board: &Board, mine: bool) -> HashMap<(i8, i8), [Option<(i8, i8)>; 24]> {
+pub fn possible_moves(board: &Board, mine: bool) -> HashMap<(i8, i8), Vec<(i8, i8)>> {
 	let mut map = HashMap::new();
 
 	for (y, line) in board.iter().enumerate() {
@@ -81,7 +81,10 @@ pub fn possible_moves(board: &Board, mine: bool) -> HashMap<(i8, i8), [Option<(i
 			}
 
 			let pos = (x as i8, y as i8);
-			map.insert(pos, piece.possible_moves(board, pos));
+			let moves = piece.possible_moves(board, pos);
+			if !moves.is_empty() {
+				map.insert(pos, moves);
+			}
 		}
 	}
 
@@ -91,15 +94,11 @@ pub fn possible_moves(board: &Board, mine: bool) -> HashMap<(i8, i8), [Option<(i
 pub fn get_check(
 			board: &Board,
 			mine: bool,
-			possible: &HashMap<(i8, i8), [Option<(i8, i8)>; 24]>
+			possible: &HashMap<(i8, i8), Vec<(i8, i8)>>
 		) -> Option<(i8, i8)> {
 	for (from, moves) in possible {
 		for pos in moves {
-			let pos = match *pos {
-				Some(pos) => pos,
-				None => continue,
-			};
-			if let Piece::King(mine2) = *board_get(board, pos) {
+			if let Piece::King(mine2) = *board_get(board, *pos) {
 				if mine == mine2 {
 					return Some(*from);
 				}

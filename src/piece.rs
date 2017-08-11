@@ -159,7 +159,7 @@ impl Piece {
 		}
 	}
 
-	pub fn possible_moves(&self, board: &Board, abs: (i8, i8)) -> [Option<(i8, i8)>; 24] {
+	pub fn possible_moves(&self, board: &Board, abs: (i8, i8)) -> Vec<(i8, i8)> {
 		// This is the most called function according to a profiler.
 		// I'm willing to pre-allocate too much if that means less allocations.
 
@@ -169,9 +169,9 @@ impl Piece {
 		let moves = self.moves();
 		// moves is max 3.
 		// DIRECTIONS_ALL is always 8.
+		// This pre-allocation does not account for recursive moves.
 		// 3 * 8 = 24
-		let mut possible_moves = [None; 24];
-		let mut index = 0;
+		let mut possible_moves = Vec::with_capacity(24);
 
 		for m in &moves {
 			let m = match *m {
@@ -185,10 +185,9 @@ impl Piece {
 				loop {
 					let abs = (x + new_x, y + new_y);
 
-					if possible_moves.contains(&Some(abs)) {
+					if possible_moves.contains(&abs) {
 					} else if self.can_move(board, (new_x, new_y), abs) {
-						possible_moves[index] = Some(abs);
-						index += 1;
+						possible_moves.push(abs);
 					} else {
 						break;
 					}

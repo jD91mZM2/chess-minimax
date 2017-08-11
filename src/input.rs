@@ -1,7 +1,7 @@
 use *;
 use std::io::{self, Write};
 
-fn positions_join<'a, I: Iterator<Item = (i8, i8)>>(input: I) -> String {
+fn positions_join<'a, I: Iterator<Item = &'a (i8, i8)>>(input: I) -> String {
 	let mut output = String::new();
 	let mut first  = true;
 
@@ -12,7 +12,7 @@ fn positions_join<'a, I: Iterator<Item = (i8, i8)>>(input: I) -> String {
 			output.push_str(", ");
 		}
 
-		position_string(pos, &mut output)
+		position_string(*pos, &mut output)
 	}
 
 	output
@@ -145,7 +145,7 @@ pub fn main() {
 
 					let mut found = false;
 					for m in &piece.possible_moves(&board, from) {
-						if *m == Some(to) {
+						if *m == to {
 							found = true;
 						}
 					}
@@ -210,16 +210,12 @@ pub fn main() {
 				let pos = parse_pos!(args[0]);
 
 				let possible = (*board_get(&board, pos)).possible_moves(&board, pos);
-				if possible.iter().all(|pos| pos.is_none()) {
+				if possible.is_empty() {
 					println!("No possible moves");
 					continue;
 				}
 
-				println!("{}", positions_join(
-					possible.iter()
-						.filter(|pos| pos.is_some())
-						.map(|pos| pos.unwrap())
-				));
+				println!("{}", positions_join(possible.iter()));
 			},
 			"all" => {
 				usage!(0, "all");
@@ -238,11 +234,7 @@ pub fn main() {
 					let mut pos = String::with_capacity(2);
 					position_string((x, y), &mut pos);
 
-					println!("{}: {}", pos, positions_join(
-						moves.iter()
-							.filter(|pos| pos.is_some())
-							.map(|pos| pos.unwrap())
-					));
+					println!("{}: {}", pos, positions_join(moves.iter()));
 				}
 			},
 			"best" => {
