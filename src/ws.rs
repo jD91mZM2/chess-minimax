@@ -15,7 +15,7 @@ macro_rules! print_err {
 	}
 }
 
-const IP_PORT: (&str, u16) = ("localhost", 1234);
+const IP_PORT: (&str, u16) = ("localhost", 27455);
 const VERSION: &str = "v1";
 const ACCEPT: &str = "ACCEPT";
 const REFUSE: &str = "REFUSE";
