@@ -137,6 +137,12 @@ pub fn main() {
 				if !force {
 					let piece = *board_get(&board, from);
 
+					if piece.is_mine() {
+						eprintln!("Can't move with that piece! It's mine!");
+						eprintln!("TIP: movef moves without checking first.");
+						continue;
+					}
+
 					let mut found = false;
 					for m in &piece.possible_moves(&board, from) {
 						if *m == Some(to) {

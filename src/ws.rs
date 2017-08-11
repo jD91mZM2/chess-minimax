@@ -206,6 +206,9 @@ enum MoveResult {
 fn do_move(from: (i8, i8), to: (i8, i8), board: &mut Board, force: bool) -> MoveResult {
 	if !force {
 		let piece = *board_get(&board, from);
+		if piece.is_mine() {
+			return MoveResult::Refuse;
+		}
 
 		let mut found = false;
 		for m in &piece.possible_moves(&board, from) {
