@@ -27,7 +27,7 @@
 		<script>
 			var socket = new WebSocket("ws://localhost:1234", "chess");
 			socket.onopen = function (event) {
-				socket.send("INIT v0");
+				socket.send("INIT v1");
 			}
 
 			var undo;
