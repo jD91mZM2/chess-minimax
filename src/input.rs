@@ -1,6 +1,70 @@
 use *;
 use std::io::{self, Write};
 
+fn positions_join<'a, I: Iterator<Item = (i8, i8)>>(input: I) -> String {
+	let mut output = String::new();
+	let mut first  = true;
+
+	for pos in input {
+		if first {
+			first = false
+		} else {
+			output.push_str(", ");
+		}
+
+		position_string(pos, &mut output)
+	}
+
+	output
+}
+fn position_string(input: (i8, i8), output: &mut String) {
+	#[cfg(not(feature = "white"))]
+	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
+	#[cfg(feature = "white")]
+	output.push(std::char::from_u32(input.0 as u32 + 'A' as u32).unwrap());
+
+	#[cfg(not(feature = "white"))]
+	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
+	#[cfg(feature = "white")]
+	output.push(std::char::from_u32((7 - input.1) as u32 + '1' as u32).unwrap());
+}
+fn parse_position(input: &str) -> Option<(i8, i8)> {
+	let (mut x, mut y) = (None, None);
+
+	for c in input.chars() {
+		let code = c as u32;
+
+		// The following blocks are required
+		// because #[cfg]s on expressions are
+		// apparently experimental.
+
+		if code >= 'a' as u32 && code <= 'h' as u32 {
+			#[cfg(not(feature = "white"))]
+			{ x = Some(('h' as u32 - code) as i8); }
+			#[cfg(feature = "white")]
+			{ x = Some((code - 'a' as u32) as i8); }
+		} else if code >= 'A' as u32 && code <= 'H' as u32 {
+			#[cfg(not(feature = "white"))]
+			{ x = Some(('H' as u32 - code) as i8); }
+			#[cfg(feature = "white")]
+			{ x = Some((code - 'A' as u32) as i8); }
+		} else if code >= '1' as u32 && code <= '8' as u32 {
+			#[cfg(not(feature = "white"))]
+			{ y = Some((code - '1' as u32) as i8); }
+			#[cfg(feature = "white")]
+			{ y = Some(('8' as u32 - code) as i8); }
+		} else {
+			return None;
+		}
+	}
+
+	if x.is_none() || y.is_none() {
+		return None;
+	}
+	Some((x.unwrap(), y.unwrap()))
+}
+
+
 pub fn main() {
 	let mut board = make_board();
 
