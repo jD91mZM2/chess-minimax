@@ -157,7 +157,7 @@ pub fn main() {
 					}
 				}
 
-				let (old_from, old_to) = board_move(&mut board, from, to);
+				let (old_from, old_to, _) = board_move(&mut board, from, to);
 
 				if !force {
 					let possible = possible_moves(&board, true);

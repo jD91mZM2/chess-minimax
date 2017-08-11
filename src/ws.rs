@@ -152,15 +152,23 @@ pub fn main() {
 						let to   = (parse!(args[2]), parse!(args[3]));
 
 						match do_move(from, to, &mut board, castling != 0) {
-							MoveResult::Accept if castling == 0 => {
-								send!(ACCEPT.to_string());
+							MoveResult::Accept(changed) => {
+								if changed {
+									send!(format!("INTO-QUEEN {} {}", to.0, to.1));
+								}
+								if castling == 0 {
+									send!(ACCEPT.to_string());
 
-								let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
-								board_move(&mut board, from, to);
+									let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
+									let (_, _, changed) = board_move(&mut board, from, to);
 
-								send!(format!("MOVE {} {} {} {}", from.0, from.1, to.0, to.1));
-							}
-							MoveResult::Accept => {},
+									send!(format!("MOVE {} {} {} {}", from.0, from.1, to.0, to.1));
+
+									if changed {
+										send!(format!("INTO-QUEEN {} {}", to.0, to.1));
+									}
+								}
+							},
 							MoveResult::Check((x, y)) => {
 								send!(REFUSE.to_string());
 								send!(format!("HIGHLIGHT {} {}", x, y));
@@ -199,7 +207,7 @@ fn receive(client: &mut Client<TcpStream>) -> Result<Option<String>, Box<std::er
 }
 
 enum MoveResult {
-	Accept,
+	Accept(bool),
 	Check((i8, i8)),
 	Refuse
 }
@@ -222,7 +230,7 @@ fn do_move(from: (i8, i8), to: (i8, i8), board: &mut Board, force: bool) -> Move
 		}
 	}
 
-	let (old_from, old_to) = board_move(board, from, to);
+	let (old_from, old_to, changed) = board_move(board, from, to);
 
 	if !force {
 		let possible = possible_moves(&board, true);
@@ -233,5 +241,5 @@ fn do_move(from: (i8, i8), to: (i8, i8), board: &mut Board, force: bool) -> Move
 			return MoveResult::Check(piece);
 		}
 	}
-	MoveResult::Accept
+	MoveResult::Accept(changed)
 }

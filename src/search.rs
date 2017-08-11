@@ -62,7 +62,7 @@ pub fn search(board: &mut Board, mine: bool, depth: u8, mut alpha: i32, mut beta
 
 			// It *could* only return old_to, but then
 			// it wouldn't undo Pawn -> Queen.
-			let (old_from, old_to) = board_move(board, old, new);
+			let (old_from, old_to, _) = board_move(board, old, new);
 
 			score = search(board, !mine, depth + 1, alpha, beta).0;
 

@@ -44,26 +44,31 @@ pub fn board_string(board: &Board) -> String {
 	output
 }
 
-pub fn board_set(board: &mut Board, pos: (i8, i8), mut piece: Piece) {
+pub fn board_set(board: &mut Board, pos: (i8, i8), mut piece: Piece) -> bool {
+	let mut changed = false;
 	if let Piece::Pawn(mine) = piece {
 		if (mine && pos.1 == 0) ||
 			(!mine && pos.1 == 7) {
 
 			piece = Piece::Queen(mine);
+			changed = true;
 		}
 	}
 	board[pos.1 as usize][pos.0 as usize] = piece;
+
+	changed
 }
 pub fn board_get(board: &Board, pos: (i8, i8)) -> &Piece {
 	&board[pos.1 as usize][pos.0 as usize]
 }
-pub fn board_move(board: &mut Board, from: (i8, i8), to: (i8, i8)) -> (Piece, Piece) {
+pub fn board_move(board: &mut Board, from: (i8, i8), to: (i8, i8)) -> (Piece, Piece, bool) {
 	let piece = *board_get(board, from);
 	let old = *board_get(board, to);
-	board_set(board, to, piece);
-	board_set(board, from, Piece::Empty);
 
-	(piece, old)
+	let mut changed = board_set(board, to, piece);
+	changed = changed || board_set(board, from, Piece::Empty);
+
+	(piece, old, changed)
 }
 
 pub fn possible_moves(board: &Board, mine: bool) -> HashMap<(i8, i8), [Option<(i8, i8)>; 24]> {
