@@ -81,23 +81,39 @@ fn positions_join<'a, I: Iterator<Item = (i8, i8)>>(input: I) -> String {
 }
 #[cfg(not(feature = "websocket"))]
 fn parse_position(input: &str) -> Option<(i8, i8)> {
-	let (mut x, mut y) = (0, 0);
+	let (mut x, mut y) = (None, None);
 
 	for c in input.chars() {
 		let code = c as u32;
 
+		// The following blocks are required
+		// because #[cfg]s on expressions are
+		// apparently experimental.
+
 		if code >= 'a' as u32 && code <= 'h' as u32 {
-			x = (7 - (code - 'a' as u32)) as i8
+			#[cfg(not(feature = "white"))]
+			{ x = Some(('h' as u32 - code) as i8); }
+			#[cfg(feature = "white")]
+			{ x = Some((code - 'a' as u32) as i8); }
 		} else if code >= 'A' as u32 && code <= 'H' as u32 {
-			x = (7 - (code - 'A' as u32)) as i8
+			#[cfg(not(feature = "white"))]
+			{ x = Some(('H' as u32 - code) as i8); }
+			#[cfg(feature = "white")]
+			{ x = Some((code - 'A' as u32) as i8); }
 		} else if code >= '1' as u32 && code <= '8' as u32 {
-			y = (code - '1' as u32) as i8
+			#[cfg(not(feature = "white"))]
+			{ y = Some((code - '1' as u32) as i8); }
+			#[cfg(feature = "white")]
+			{ y = Some(('8' as u32 - code) as i8); }
 		} else {
 			return None;
 		}
 	}
 
-	Some((x, y))
+	if x.is_none() || y.is_none() {
+		return None;
+	}
+	Some((x.unwrap(), y.unwrap()))
 }
 
 fn main() {

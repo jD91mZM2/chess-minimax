@@ -27,7 +27,12 @@ pub fn board_string(board: &Board) -> String {
 	#[cfg(feature = "white")]
 	output.push_str("  A B C D E F G H\n");
 	for (i, line) in board.iter().enumerate() {
-		output.push_str(&(i + 1).to_string());
+		#[cfg(not(feature = "white"))]
+		let i = i + 1;
+		#[cfg(feature = "white")]
+		let i = 8 - i;
+
+		output.push_str(&i.to_string());
 		output.push(' ');
 		for piece in line {
 			output.push(piece.to_char());
