@@ -108,15 +108,45 @@ pub fn get_check(
 
 	None
 }
-pub fn check_status(board: &Board) -> Option<bool> {
-	if get_check(board, false, &possible_moves(board, true)).is_some() {
-		return Some(false);
-	}
-	if get_check(board, true, &possible_moves(board, false)).is_some() {
-		return Some(true);
+pub enum CheckStatus {
+	CheckMine(bool),
+	CheckYour(bool),
+	None,
+}
+pub fn check_status(board: &mut Board) -> CheckStatus {
+	let possible_mine = possible_moves(board, true);
+	let possible_your = possible_moves(board, false);
+
+	for mine in &[true, false] {
+		let mine = *mine;
+		let mut mate = true;
+
+		let possible = if mine { &possible_mine } else { &possible_your };
+
+		for (from, moves) in possible {
+			for to in moves {
+				let (old_from, old_to, _) = board_move(board, *from, *to);
+
+				let possible = possible_moves(board, !mine);
+				if get_check(board, mine, &possible).is_none() {
+					mate = false;
+				}
+
+				board_set(board, *from, old_from);
+				board_set(board, *to, old_to);
+			}
+		}
+
+		if mate || get_check(board, mine, if mine { &possible_your } else { &possible_mine }).is_some() {
+			if mine {
+				return CheckStatus::CheckMine(mate);
+			} else {
+				return CheckStatus::CheckYour(mate);
+			}
+		}
 	}
 
-	None
+	CheckStatus::None
 }
 
 pub fn make_board() -> Board {

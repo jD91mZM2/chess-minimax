@@ -152,6 +152,10 @@ pub fn main() {
 
 						match do_move(from, to, &mut board, castling != 0) {
 							MoveResult::Accept(changed) => {
+								if let Some(string) = checkmate_status_string(&mut board) {
+									send!(string.to_string());
+									close!(1000, String::new());
+								}
 								if changed {
 									send!(format!("INTO-QUEEN {}", position_string(to)));
 								}
@@ -162,6 +166,11 @@ pub fn main() {
 									let (_, _, changed) = board_move(&mut board, from, to);
 
 									send!(format!("MOVE {} {}", position_string(from), position_string(to)));
+
+									if let Some(string) = checkmate_status_string(&mut board) {
+										send!(string.to_string());
+										close!(1000, String::new());
+									}
 
 									if changed {
 										send!(format!("INTO-QUEEN {}", position_string(to)));
@@ -202,6 +211,20 @@ fn receive(client: &mut Client<TcpStream>) -> Result<Option<String>, Box<std::er
 		Ok(_) => Ok(None),
 		Err(WebSocketError::NoDataAvailable) => Ok(None),
 		Err(err) => Err(Box::new(err)),
+	}
+}
+fn checkmate_status_string(board: &mut Board) -> Option<&'static str> {
+	#[cfg(not(feature = "white"))]
+	match check_status(board) {
+		CheckStatus::CheckMine(true) => Some("CHECKMATE BLACK"),
+		CheckStatus::CheckYour(true) => Some("CHECKMATE WHITE"),
+		_ => None,
+	}
+	#[cfg(feature = "white")]
+	match check_status(board) {
+		CheckStatus::CheckMine(true) => Some("CHECKMATE WHITE"),
+		CheckStatus::CheckYour(true) => Some("CHECKMATE BLACK"),
+		_ => None,
 	}
 }
 

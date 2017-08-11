@@ -24,16 +24,16 @@ pub fn main() {
 	loop {
 		println!();
 		#[cfg(not(feature = "white"))]
-		match check_status(&board) {
-			None => {},
-			Some(false) => println!("WHITE CHECKED\n"),
-			Some(true) => println!("BLACK CHECKED\n"),
+		match check_status(&mut board) {
+			CheckStatus::None => {},
+			CheckStatus::CheckMine(mate) => println!("BLACK CHECK{}\n", if mate { "MATE" } else { "ED" }),
+			CheckStatus::CheckYour(mate) => println!("WHITE CHECK{}\n", if mate { "MATE" } else { "ED" }),
 		}
 		#[cfg(feature = "white")]
-		match check_status(&board) {
-			None => {},
-			Some(true) => println!("WHITE CHECKED\n"),
-			Some(false) => println!("BLACK CHECKED\n"),
+		match check_status(&mut board) {
+			CheckStatus::None => {},
+			CheckStatus::CheckMine(mate) => println!("WHITE CHECK{}\n", if mate { "MATE" } else { "ED" }),
+			CheckStatus::CheckYour(mate) => println!("BLACK CHECK{}\n", if mate { "MATE" } else { "ED" }),
 		}
 		println!("{}", board::board_string(&board));
 
