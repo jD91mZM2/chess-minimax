@@ -40,7 +40,9 @@
 			}
 			socket.onclose = function(event) {
 				is_closed = true;
-				alert("Connection dropped.");
+				setTimeout(function() {
+					alert("Connection dropped.");
+				}, 3000);
 			}
 
 			var undo;
@@ -97,6 +99,10 @@
 					// TODO!
 					// See https://github.com/oakmac/chessboardjs/issues/147.
 					break;
+				case "CHECKMATE":
+					setTimeout(function() {
+						alert("Checkmate, " + args[0].toLowerCase());
+					}, 1000);
 				}
 			}
 
