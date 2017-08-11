@@ -34,8 +34,13 @@
 				socket.send(message);
 			}
 
+			var is_closed = false;
 			socket.onopen = function(event) {
 				send("INIT v1");
+			}
+			socket.onclose = function(event) {
+				is_closed = true;
+				alert("Connection dropped.");
 			}
 
 			var undo;
@@ -45,6 +50,9 @@
 				board = ChessBoard("board", {
 					position: "start",
 					draggable: true,
+					onDragStart: function(source, piece, position, orientation) {
+						return !is_closed;
+					},
 					onDrop: function(source, target, piece, newPos, oldPos, orientation) {
 						if (waiting) {
 							return 'snapback';
