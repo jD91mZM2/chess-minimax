@@ -19,7 +19,9 @@
 		</style>
 	</head>
 	<body>
-		Crappy chess minimax
+		<h3>Crappy chess minimax</h3>
+		<p>Done possible thanks to <i><a href="https://chessboardjs.com/">chessboard.js</a></i></p>
+
 		<div id="board" style="width: 400px"></div>
 
 		<script src="js/jquery-3.2.1.min.js"></script>
@@ -27,8 +29,13 @@
 		<script>
 			var server = prompt("Server?", "localhost")
 			var socket = new WebSocket("ws://" + server + ":27455/", "chess");
-			socket.onopen = function (event) {
-				socket.send("INIT v1");
+			function send(message) {
+				console.log("SEND: " + message);
+				socket.send(message);
+			}
+
+			socket.onopen = function(event) {
+				send("INIT v1");
 			}
 
 			var undo;
@@ -45,7 +52,7 @@
 
 						waiting = true;
 						undo = oldPos;
-						socket.send("MOVE " + source.toUpperCase() + " " + target.toUpperCase());
+						send("MOVE " + source.toUpperCase() + " " + target.toUpperCase());
 					},
 				});
 			}
@@ -80,11 +87,13 @@
 					break;
 				case "INTO-QUEEN":
 					// TODO!
+					// See https://github.com/oakmac/chessboardjs/issues/147.
 					break;
 				}
 			}
 
-			socket.onmessage = function (event) {
+			socket.onmessage = function(event) {
+				console.log("RECEIVED: " + event.data);
 				var args = event.data.split(" ");
 				command(args);
 			}
