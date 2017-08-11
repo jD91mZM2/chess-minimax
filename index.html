@@ -6,8 +6,71 @@ layout: default
 <script src="js/jquery-3.2.1.min.js"></script>
 <script src="js/chessboard-0.3.0.min.js"></script>
 <script>
-	var board = ChessBoard("board", {
-		position: "start",
-		draggable: true,
-	});
+	var white = true;
+	function decode(pos) {
+		if (white) {
+			return ["h".charCodeAt(0) - pos.charCodeAt(0), pos.charCodeAt(1) - "1".charCodeAt(0)];
+		} else {
+			return [pos.charCodeAt(0) - "a".charCodeAt(0), "8".charCodeAt(0) - pos.charCodeAt(1)];
+		}
+	}
+	function encode(pos) {
+		if (white) {
+			return String.fromCharCode((7 - parseInt(pos[0])) + "a".charCodeAt(0), "1".charCodeAt(0) + parseInt(pos[1]));
+		} else {
+			return String.fromCharCode("a".charCodeAt(0) + parseInt(pos[0]), (7 - parseInt(pos[1])) + "1".charCodeAt(0));
+		}
+	}
+	var socket = new WebSocket("ws://localhost:1234", "chess");
+	socket.onopen = function (event) {
+		socket.send("INIT v0");
+	}
+
+	var undo;
+
+	var board;
+	function init() {
+		board = ChessBoard("board", {
+			position: "start",
+			draggable: true,
+			onDrop: function(source, target, piece, newPos, oldPos, orientation) {
+				undo = oldPos;
+				source = decode(source);
+				target = decode(target);
+				socket.send("MOVE " + source[0] + " " + source[1] + " " + target[0] + " " + target[1]);
+			},
+		});
+	}
+
+	function command(args) {
+		var cmd = args.shift();
+		switch (cmd) {
+		case "ACCEPT":
+			break;
+		case "REFUSE":
+			board.position(undo);
+			break;
+		case "BLACK":
+			console.log("I'm playing white!");
+			init();
+			break;
+		case "WHITE":
+			console.log("I'm playing black!");
+			init();
+			board.flip();
+			command(args);
+			break;
+		case "MOVE":
+			console.log("Move (" + args[0] + ", " + args[1] + ") to (" + args[2] + ", " + args[3] + ")");
+			console.log(encode(args.slice(0, 2)) + "-" + encode(args.slice(2, 4)));
+			board.move(encode(args.slice(0, 2)) + "-" + encode(args.slice(2, 4)));
+			break;
+		}
+	}
+
+	socket.onmessage = function (event) {
+		console.log(event.data);
+		var args = event.data.split(" ");
+		command(args);
+	}
 </script>
