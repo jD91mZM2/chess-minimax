@@ -220,7 +220,7 @@ fn do_move(from: (i8, i8), to: (i8, i8), board: &mut Board, force: bool) -> Move
 
 		let mut found = false;
 		for m in &piece.possible_moves(&board, from) {
-			if *m == Some(to) {
+			if *m == to {
 				found = true;
 			}
 		}
