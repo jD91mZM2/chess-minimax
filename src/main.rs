@@ -57,6 +57,57 @@ fn rotate(rel: (i8, i8), direction: &Direction) -> (i8, i8) {
 	}
 }
 
+fn position_string(input: (i8, i8)) -> String {
+	let mut output = String::with_capacity(2);
+	#[cfg(not(feature = "white"))]
+	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
+	#[cfg(feature = "white")]
+	output.push(std::char::from_u32(input.0 as u32 + 'A' as u32).unwrap());
+
+	#[cfg(not(feature = "white"))]
+	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
+	#[cfg(feature = "white")]
+	output.push(std::char::from_u32((7 - input.1) as u32 + '1' as u32).unwrap());
+
+	output
+}
+fn parse_position(input: &str) -> Option<(i8, i8)> {
+	let (mut x, mut y) = (None, None);
+
+	for c in input.chars() {
+		let code = c as u32;
+
+		// The following blocks are required
+		// because #[cfg]s on expressions are
+		// apparently experimental.
+
+		if code >= 'a' as u32 && code <= 'h' as u32 {
+			#[cfg(not(feature = "white"))]
+			{ x = Some(('h' as u32 - code) as i8); }
+			#[cfg(feature = "white")]
+			{ x = Some((code - 'a' as u32) as i8); }
+		} else if code >= 'A' as u32 && code <= 'H' as u32 {
+			#[cfg(not(feature = "white"))]
+			{ x = Some(('H' as u32 - code) as i8); }
+			#[cfg(feature = "white")]
+			{ x = Some((code - 'A' as u32) as i8); }
+		} else if code >= '1' as u32 && code <= '8' as u32 {
+			#[cfg(not(feature = "white"))]
+			{ y = Some((code - '1' as u32) as i8); }
+			#[cfg(feature = "white")]
+			{ y = Some(('8' as u32 - code) as i8); }
+		} else {
+			return None;
+		}
+	}
+
+	if x.is_none() || y.is_none() {
+		return None;
+	}
+	Some((x.unwrap(), y.unwrap()))
+}
+
+
 fn main() {
 	#[cfg(all(feature = "websocket", feature = "cpuprofiler"))]
 	panic!("Oh no, you can't have both websocket and cpuprofiler");

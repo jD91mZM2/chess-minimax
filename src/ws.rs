@@ -97,7 +97,7 @@ pub fn main() {
 				let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
 				board_move(&mut board, from, to);
 
-				send!(format!("WHITE MOVE {} {} {} {}", from.0, from.1, to.0, to.1));
+				send!(format!("WHITE MOVE {} {}", position_string(from), position_string(to)));
 			}
 			#[cfg(not(feature = "white"))]
 			send!("BLACK".to_string());
@@ -123,13 +123,11 @@ pub fn main() {
 						}
 					}
 				}
-				macro_rules! parse {
+				macro_rules! parse_pos {
 					($str:expr) => {
-						match $str.parse::<i8>() {
-							Ok(result)
-								if result >= 0 && result < 8
-									=> result,
-							_ => {
+						match parse_position($str) {
+							Some(result) => result,
+							None => {
 								bad_request!();
 								return;
 							},
@@ -147,14 +145,14 @@ pub fn main() {
 						send!(REFUSE.to_string())
 					},
 					"MOVE" => {
-						check_len!(4);
-						let from = (parse!(args[0]), parse!(args[1]));
-						let to   = (parse!(args[2]), parse!(args[3]));
+						check_len!(2);
+						let from = parse_pos!(args[0]);
+						let to   = parse_pos!(args[1]);
 
 						match do_move(from, to, &mut board, castling != 0) {
 							MoveResult::Accept(changed) => {
 								if changed {
-									send!(format!("INTO-QUEEN {} {}", to.0, to.1));
+									send!(format!("INTO-QUEEN {}", position_string(to)));
 								}
 								if castling == 0 {
 									send!(ACCEPT.to_string());
@@ -162,16 +160,16 @@ pub fn main() {
 									let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
 									let (_, _, changed) = board_move(&mut board, from, to);
 
-									send!(format!("MOVE {} {} {} {}", from.0, from.1, to.0, to.1));
+									send!(format!("MOVE {} {}", position_string(from), position_string(to)));
 
 									if changed {
-										send!(format!("INTO-QUEEN {} {}", to.0, to.1));
+										send!(format!("INTO-QUEEN {}", position_string(to)));
 									}
 								}
 							},
-							MoveResult::Check((x, y)) => {
+							MoveResult::Check(pos) => {
 								send!(REFUSE.to_string());
-								send!(format!("HIGHLIGHT {} {}", x, y));
+								send!(format!("HIGHLIGHT {}", position_string(pos)));
 							},
 							MoveResult::Refuse => send!(REFUSE.to_string()),
 						}
