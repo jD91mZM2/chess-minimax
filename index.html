@@ -25,21 +25,6 @@
 		<script src="js/jquery-3.2.1.min.js"></script>
 		<script src="js/chessboard-0.3.0.min.js"></script>
 		<script>
-			var white = true;
-			function decode(pos) {
-				if (white) {
-					return ["h".charCodeAt(0) - pos.charCodeAt(0), pos.charCodeAt(1) - "1".charCodeAt(0)];
-				} else {
-					return [pos.charCodeAt(0) - "a".charCodeAt(0), "8".charCodeAt(0) - pos.charCodeAt(1)];
-				}
-			}
-			function encode(pos) {
-				if (white) {
-					return String.fromCharCode((7 - parseInt(pos[0])) + "a".charCodeAt(0), "1".charCodeAt(0) + parseInt(pos[1]));
-				} else {
-					return String.fromCharCode("a".charCodeAt(0) + parseInt(pos[0]), (7 - parseInt(pos[1])) + "1".charCodeAt(0));
-				}
-			}
 			var socket = new WebSocket("ws://localhost:1234", "chess");
 			socket.onopen = function (event) {
 				socket.send("INIT v0");
@@ -59,9 +44,7 @@
 
 						waiting = true;
 						undo = oldPos;
-						source = decode(source);
-						target = decode(target);
-						socket.send("MOVE " + source[0] + " " + source[1] + " " + target[0] + " " + target[1]);
+						socket.send("MOVE " + source.toUpperCase() + " " + target.toUpperCase());
 					},
 				});
 			}
@@ -88,11 +71,11 @@
 					command(args);
 					break;
 				case "MOVE":
-					board.move(encode(args.slice(0, 2)) + "-" + encode(args.slice(2, 4)));
+					board.move(args[0].toLowerCase() + "-" + args[1].toLowerCase());
 					waiting = false;
 					break;
 				case "HIGHLIGHT":
-					$(".square-" + encode(args)).addClass("highlight");
+					$(".square-" + args[0].toLowerCase()).addClass("highlight");
 					break;
 				case "INTO-QUEEN":
 					// TODO!
@@ -101,7 +84,6 @@
 			}
 
 			socket.onmessage = function (event) {
-				console.log(event.data);
 				var args = event.data.split(" ");
 				command(args);
 			}
