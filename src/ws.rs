@@ -156,7 +156,7 @@ pub fn main() {
 
 						match do_move(from, to, &mut board, castling != 0) {
 							MoveResult::Accept(changed) => {
-								if let Some(string) = checkmate_status_string(&mut board) {
+								if let Some(string) = checkmate_status_string(&mut board, true) {
 									send!(string.to_string());
 									close!(1000, String::new());
 								}
@@ -171,7 +171,7 @@ pub fn main() {
 
 									send!(format!("MOVE {} {}", position_string(from), position_string(to)));
 
-									if let Some(string) = checkmate_status_string(&mut board) {
+									if let Some(string) = checkmate_status_string(&mut board, false) {
 										send!(string.to_string());
 										close!(1000, String::new());
 									}
@@ -217,9 +217,18 @@ fn receive(client: &mut Client<TcpStream>) -> Result<Option<String>, Box<std::er
 		Err(err) => Err(Box::new(err)),
 	}
 }
-fn checkmate_status_string(board: &mut Board) -> Option<&'static str> {
+fn checkmate_status_string(board: &mut Board, my_turn: bool) -> Option<&'static str> {
+	let status = check_status(board);
+	if !my_turn {
+		if let CheckStatus::CheckMine(false) = status {
+			// It's still in check after its move.
+			// Knows it's going to lose either way.
+			return Some("I-GIVE-UP")
+		}
+	}
+
 	#[cfg(not(feature = "white"))]
-	match check_status(board) {
+	match status {
 		CheckStatus::CheckMine(true) => Some("CHECKMATE BLACK"),
 		CheckStatus::CheckYour(true) => Some("CHECKMATE WHITE"),
 		_ => None,
