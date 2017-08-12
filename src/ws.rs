@@ -15,7 +15,11 @@ macro_rules! print_err {
 	}
 }
 
+#[cfg(not(feature = "public"))]
 const IP_PORT: (&str, u16) = ("localhost", 27455);
+#[cfg(feature = "public")]
+const IP_PORT: (&str, u16) = ("0.0.0.0", 27455);
+
 const VERSION: &str = "v1";
 const ACCEPT: &str = "ACCEPT";
 const REFUSE: &str = "REFUSE";

@@ -8,4 +8,5 @@ cpuprofiler = { version = "0.0",  optional = true }
 websocket   = { version = "0.20", optional = true }
 
 [features]
-white = []
+white  = []
+public = []

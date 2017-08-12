@@ -110,7 +110,10 @@ fn parse_position(input: &str) -> Option<(i8, i8)> {
 
 fn main() {
 	#[cfg(all(feature = "websocket", feature = "cpuprofiler"))]
-	panic!("Oh no, you can't have both websocket and cpuprofiler");
+	panic!("Oh no, you can't have both websocket and cpuprofiler.");
+
+	#[cfg(all(feature = "public", not(feature = "websocket")))]
+	panic!("Oh no, you can't have public without websocket.");
 
 	#[cfg(not(feature = "websocket"))]
 	input::main();
