@@ -1,11 +1,14 @@
 # Introduction
 
-This is version `v1` of the chess protocol.
+This is version `v2` (draft) of the chess protocol.
 Only breaking versions are counted.
 It's something I need to make a website for my crappy-chess-minimax.
 I might as well share the specification.
 
 # Changes since last version
+
+`INTO-QUEEN` and `CASTLING` was replaced with the superior `DIFF`.  
+More detailed description of how to handle special moves.
 
 # Specification
 
@@ -56,6 +59,22 @@ WHITE MOVE old new
 where `new` and `old` are values of the old and new coordinates.  
 See more about the `MOVE` command [here](#move).
 
+## Special moves
+
+The server should keep the client updated on all "special moves" with `DIFF`.  
+The client should not need to have any knowledge of how chess is played
+other than that one piece can move to another place.
+
+**All of these are optional. You do not need to support any special moves to have a valid implementation of the protocol.**
+
+#### Castlings
+
+Castlings should be attempted when the client tries to `MOVE` its king to a rook.
+
+#### Promotions
+
+Currently the server chooses what pawns get promoted to.
+
 ## Client & Server commands.
 
 ### `MOVE`
@@ -84,29 +103,6 @@ and then its move.
 
 **note**: Position strings should *always* be UPPERCASE.
 
-### `CASTLING`
-
-The `CASTLING` command informs that the next two commands describe a castling.  
-This is useful to tell the server to check for castlings differently, or not check at all.
-
-Example:
-```
-CASTLING
-MOVE D1 B1
-MOVE A1 C1
-```
-
-Once again, the client should just obey.  
-The server should also reply with
-```
-ACCEPT
-```
-or
-```
-REFUSE
-```
-and then its move.
-
 ## Server-only commands
 
 ### `HIGHLIGHT`
@@ -120,15 +116,19 @@ HIGHLIGHT B7 C6 D5 E4
 ```
 *Highlight can be used to inform the client why it can't move there - for example because it would be in check.*
 
-### `INTO-QUEEN`
+### `DIFF`
 
-This command turns the specified piece into a queen.  
-This is used by the server when a pawn walks to the edge of the board.
+This command bulk-updates the board with all specified differences. Just like highlight it takes multiple arguments.  
+This is used for more complicated moves, like passant, castlings and queen promotions.
+
+The syntax is `DIFF <pos> <piece>`, where the piece is described by all lowercase `colorpiece`.
 
 Example:
 ```
-INTO-QUEEN F8
+DIFF D1 empty C1 whiterook B1 whiteking A1 empty
 ```
+
+*The above example was a castling.*
 
 ### `CHECKMATE`
 
