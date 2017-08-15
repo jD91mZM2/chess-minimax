@@ -107,7 +107,6 @@ pub fn main() {
 			#[cfg(not(feature = "white"))]
 			send!("BLACK".to_string());
 
-			let mut castling = 0;
 			loop {
 				let message = receive!();
 				let mut args = message.split_whitespace();
@@ -237,7 +236,7 @@ enum MoveResult {
 	Check(Pos),
 	Refuse
 }
-fn do_move(from: Pos, to: Pos, board: &mut Board, force: bool) -> MoveResult {
+fn do_move(from: Pos, to: Pos, board: &mut Board) -> MoveResult {
 	// if !force {
 	let piece = board_get(&board, from);
 	if piece.is_mine() {

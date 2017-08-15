@@ -71,7 +71,7 @@ pub fn en_passant_get_capture(board: &Board, mine: bool, pos: Pos) -> Option<Pos
 	} else {
 		return None;
 	}
-	return if board_get(board, capture) != Piece::Pawn(!mine) { None } else { Some(capture) };
+	if board_get(board, capture) != Piece::Pawn(!mine) { None } else { Some(capture) }
 }
 
 pub enum PosUnwinder {

@@ -161,12 +161,12 @@ impl Piece {
 
 	pub fn worth(&self) -> u8 {
 		match *self {
-			Piece::King(_) => 0, // Handled separately
 			Piece::Queen(_) => 9,
 			Piece::Rook(_) => 5,
 			Piece::Bishop(_) |
 			Piece::Knight(_) => 3,
 			Piece::Pawn(_) => 1,
+			Piece::King(_) | // Handled separately
 			Piece::Empty => 0,
 		}
 	}
