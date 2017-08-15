@@ -21,12 +21,18 @@
 	</head>
 	<body>
 		<h3>Crappy chess minimax</h3>
-		<p>Done possible thanks to <i><a href="https://chessboardjs.com/">chessboard.js</a></i></p>
+		<p><i>
+			Done possible thanks to
+			<a href="https://chessboardjs.com/">chessboard.js</a>
+			and
+			<a href="https://github.com/jhlywa/chess.js/">chess.js</a>
+		</i></p>
 
 		<div id="board" style="width: 400px"></div>
 
 		<script src="js/jquery-3.2.1.min.js"></script>
 		<script src="js/chessboard-0.3.0.min.js"></script>
+		<script src="js/chess.min.js"></script>
 		<script>
 			var server = location.hash.replace(/^#/, "");
 			if (server === "") {
@@ -39,40 +45,28 @@
 				socket.send(message);
 			}
 
-			var is_closed = false;
 			socket.onopen = function(event) {
 				send("INIT v1");
 			}
 			socket.onclose = function(event) {
-				is_closed = true;
-				setTimeout(function() {
-					alert("Connection dropped.");
-				}, 3000);
+				location.reload();
 			}
 
-			var undo;
-
-			var board;
+			var board, game;
 			function init() {
-				board = ChessBoard("board", {
-					position: "start",
-					draggable: true,
-					onDragStart: function(source, piece, position, orientation) {
-						return !is_closed;
-					},
-					onDrop: function(source, target, piece, newPos, oldPos, orientation) {
-						if (waiting) {
-							return 'snapback';
-						}
-
-						waiting = true;
-						undo = oldPos;
-						send("MOVE " + source.toUpperCase() + " " + target.toUpperCase());
-					},
-				});
+				board = ChessBoard("board", "start");
+				game  = new Chess();
 			}
 
-			var waiting = false;
+			function move() {
+				setTimeout(function() {
+					var moves = game.moves({ verbose: true });
+					var move  = moves[Math.floor(Math.random() * moves.length)];
+					send("MOVE " + move.from.toUpperCase() + " " + move.to.toUpperCase())
+					game.move(move);
+					board.position(game.fen());
+				}, 100);
+			}
 
 			function command(args) {
 				$(".highlight").removeClass("highlight");
@@ -82,11 +76,11 @@
 				case "ACCEPT":
 					break;
 				case "REFUSE":
-					board.position(undo);
-					waiting = false;
+					alert("Impossible!");
 					break;
 				case "BLACK":
 					init();
+					move();
 					break;
 				case "WHITE":
 					init();
@@ -94,24 +88,28 @@
 					command(args);
 					break;
 				case "MOVE":
-					board.move(args[0].toLowerCase() + "-" + args[1].toLowerCase());
-					waiting = false;
+					var from = args[0].toLowerCase();
+					var to   = args[1].toLowerCase();
+					board.move(from + '-' + to);
+					game.move({
+						from: from,
+						to: to,
+						promotion: 'q',
+					});
+
+					move();
 					break;
 				case "HIGHLIGHT":
 					$(".square-" + args[0].toLowerCase()).addClass("highlight");
 					break;
 				case "INTO-QUEEN":
-					// TODO!
-					// See https://github.com/oakmac/chessboardjs/issues/147.
+					// Probably not necessary because chess.js
 					break;
 				case "CHECKMATE":
-					setTimeout(function() {
-						alert("Checkmate, " + args[0].toLowerCase());
-					}, 1000);
+					location.reload();
 					break;
 				case "I-GIVE-UP":
-					alert("Are you playing this against another minimax bot, or are you just really skilled?\n\n" +
-							"Because the bot gave up.");
+					location.reload();
 					break;
 				}
 			}
