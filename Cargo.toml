@@ -10,3 +10,4 @@ websocket   = { version = "0.20", optional = true }
 [features]
 white  = []
 public = []
+cache  = []
