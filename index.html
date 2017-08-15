@@ -41,7 +41,7 @@
 
 			var is_closed = false;
 			socket.onopen = function(event) {
-				send("INIT v1");
+				send("INIT v2");
 			}
 			socket.onclose = function(event) {
 				is_closed = true;
@@ -100,7 +100,7 @@
 				case "HIGHLIGHT":
 					$(".square-" + args[0].toLowerCase()).addClass("highlight");
 					break;
-				case "INTO-QUEEN":
+				case "DIFF":
 					// TODO!
 					// See https://github.com/oakmac/chessboardjs/issues/147.
 					break;
