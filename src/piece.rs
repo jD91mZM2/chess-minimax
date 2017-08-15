@@ -33,7 +33,8 @@ impl FromStr for Piece {
 					concat!($your, "knight") => Piece::Knight(false),
 					concat!($mine, "pawn") => Piece::Pawn(true),
 					concat!($your, "pawn") => Piece::Pawn(false),
-					_ => return Err(NoSuchPieceErr),
+					"empty" => Piece::Empty,
+					_ => return Err(NoSuchPieceErr)
 				})
 			}
 		}
@@ -68,6 +69,31 @@ impl Piece {
 		return to_char!(true, false);
 		#[cfg(feature = "white")]
 		to_char!(false, true)
+	}
+	pub fn to_str(&self) -> &str {
+		macro_rules! to_str {
+			($mine:expr, $your:expr) => {
+				match *self {
+					Piece::King(true) => concat!($mine, "king"),
+					Piece::King(false) => concat!($your, "king"),
+					Piece::Queen(true) => concat!($mine, "queen"),
+					Piece::Queen(false) => concat!($your, "queen"),
+					Piece::Rook(true) => concat!($mine, "rook"),
+					Piece::Rook(false) => concat!($your, "rook"),
+					Piece::Bishop(true) => concat!($mine, "bishop"),
+					Piece::Bishop(false) => concat!($your, "bishop"),
+					Piece::Knight(true) => concat!($mine, "knight"),
+					Piece::Knight(false) => concat!($your, "knight"),
+					Piece::Pawn(true) => concat!($mine, "pawn"),
+					Piece::Pawn(false) => concat!($your, "pawn"),
+					Piece::Empty => "empty",
+				}
+			}
+		}
+		#[cfg(not(feature = "white"))]
+		return to_str!("black", "white");
+		#[cfg(feature = "white")]
+		to_str!("white", "black")
 	}
 	#[cfg(feature = "cache")]
 	pub fn to_byte(&self) -> u8 {

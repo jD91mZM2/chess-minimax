@@ -69,7 +69,7 @@ pub fn search(board: &mut Board, mine: bool, depth: u8, mut alpha: i32, mut beta
 			let new = *new;
 			let score;
 
-			let diff = board_move(board, old, new);
+			let (diff, _) = board_move(board, old, new);
 
 			score = search(board, !mine, depth + 1, alpha, beta).0;
 

@@ -19,6 +19,7 @@ macro_rules! none {
 
 pub type Board = [[Piece; 8]; 8];
 pub type Pos  = (i8, i8);
+pub type Diff = [Option<(Pos, Piece, Piece)>; 3];
 
 pub fn board_string(board: &Board) -> String {
 	let mut output = String::new();
@@ -99,34 +100,37 @@ pub fn board_set(board: &mut Board, pos: Pos, piece: Piece) {
 pub fn board_get(board: &Board, pos: Pos) -> Piece {
 	board[pos.1 as usize][pos.0 as usize]
 }
-pub fn board_move(board: &mut Board, from: Pos, to: Pos) -> [Option<(Pos, Piece)>; 3] {
+pub fn board_move(board: &mut Board, from: Pos, to: Pos) -> (Diff, bool) {
 	let mut old_from = board_get(board, from);
 	let     old_to   = board_get(board, to);
 
 	let mut changed = [None; 3];
-	changed[0] = Some((from, old_from));
-	changed[1] = Some((to, old_to));
+	let mut special = false;
+	changed[0] = Some((from, old_from, Piece::Empty));
+	changed[1] = Some((to, old_to, old_from));
 
 	if let Piece::Pawn(mine) = old_from {
 		if (mine && to.1 == 0) ||
 			(!mine && to.1 == 7) {
 
 			old_from = Piece::Queen(mine);
+			special = true;
 		} else if let Some(pos) = en_passant_get_capture(board, mine, to) {
-			changed[2] = Some((pos, board_get(board, pos)));
+			changed[2] = Some((pos, board_get(board, pos), Piece::Empty));
 			board_set(board, pos, Piece::Empty);
+			special = true;
 		}
 	}
 
 	board_set(board, to, old_from);
 	board_set(board, from, Piece::Empty);
 
-	changed
+	(changed, special)
 }
-pub fn board_apply(board: &mut Board, diff: [Option<(Pos, Piece)>; 3]) {
+pub fn board_apply(board: &mut Board, diff: Diff) {
 	for entry in &diff {
-		if let Some((pos, piece)) = *entry {
-			board_set(board, pos, piece);
+		if let Some((pos, from, _)) = *entry {
+			board_set(board, pos, from);
 		}
 	}
 }
@@ -185,7 +189,7 @@ pub fn check_status(board: &mut Board) -> CheckStatus {
 
 		for (from, moves) in possible {
 			for to in moves {
-				let diff = board_move(board, *from, *to);
+				let (diff, _) = board_move(board, *from, *to);
 
 				let possible = possible_moves(board, !mine);
 				if get_check(board, mine, &possible).is_none() {

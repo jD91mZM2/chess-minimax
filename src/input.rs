@@ -110,7 +110,7 @@ pub fn main() {
 					}
 				}
 
-				let diff = board_move(&mut board, from, to);
+				let (diff, _) = board_move(&mut board, from, to);
 
 				if !force {
 					let possible = possible_moves(&board, true);

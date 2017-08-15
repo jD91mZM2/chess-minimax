@@ -20,7 +20,7 @@ const IP_PORT: (&str, u16) = ("localhost", 27455);
 #[cfg(feature = "public")]
 const IP_PORT: (&str, u16) = ("0.0.0.0", 27455);
 
-const VERSION: &str = "v1";
+const VERSION: &str = "v2";
 const ACCEPT: &str = "ACCEPT";
 const REFUSE: &str = "REFUSE";
 
@@ -154,31 +154,29 @@ pub fn main() {
 						let from = parse_pos!(args[0]);
 						let to   = parse_pos!(args[1]);
 
-						match do_move(from, to, &mut board, castling != 0) {
-							MoveResult::Accept(changed) => {
+						match do_move(from, to, &mut board, false) {
+							MoveResult::Accept((diff, special)) => {
 								if let Some(string) = checkmate_status_string(&mut board, true) {
 									send!(string.to_string());
 									close!(1000, String::new());
 								}
-								// if changed {
-								// 	send!(format!("INTO-QUEEN {}", position_string(to)));
-								// }
-								if castling == 0 {
-									send!(ACCEPT.to_string());
+								send!(ACCEPT.to_string());
+								if special {
+									send!(format!("DIFF {}", diff_string(diff)));
+								}
 
-									let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
-									/*let (_, _, changed) = */board_move(&mut board, from, to);
+								let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
+								let (diff, special) = board_move(&mut board, from, to);
 
+								if special {
+									send!(format!("DIFF {}", diff_string(diff)));
+								} else {
 									send!(format!("MOVE {} {}", position_string(from), position_string(to)));
+								}
 
-									if let Some(string) = checkmate_status_string(&mut board, false) {
-										send!(string.to_string());
-										close!(1000, String::new());
-									}
-
-									// if changed {
-									// 	send!(format!("INTO-QUEEN {}", position_string(to)));
-									// }
+								if let Some(string) = checkmate_status_string(&mut board, false) {
+									send!(string.to_string());
+									close!(1000, String::new());
 								}
 							},
 							MoveResult::Check(pos) => {
@@ -187,13 +185,6 @@ pub fn main() {
 							},
 							MoveResult::Refuse => send!(REFUSE.to_string()),
 						}
-						if castling > 0 {
-							castling -= 1;
-						}
-					},
-					"CASTLING" => {
-						check_len!(0);
-						castling = 2;
 					},
 					_ => {
 						bad_request!();
@@ -242,38 +233,54 @@ fn checkmate_status_string(board: &mut Board, my_turn: bool) -> Option<&'static 
 }
 
 enum MoveResult {
-	Accept(bool),
+	Accept((Diff, bool)),
 	Check(Pos),
 	Refuse
 }
 fn do_move(from: Pos, to: Pos, board: &mut Board, force: bool) -> MoveResult {
-	if !force {
-		let piece = board_get(&board, from);
-		if piece.is_mine() {
-			return MoveResult::Refuse;
-		}
+	// if !force {
+	let piece = board_get(&board, from);
+	if piece.is_mine() {
+		return MoveResult::Refuse;
+	}
 
-		let mut found = false;
-		for m in &piece.possible_moves(&board, from) {
-			if *m == to {
-				found = true;
+	let mut found = false;
+	for m in &piece.possible_moves(&board, from) {
+		if *m == to {
+			found = true;
+		}
+	}
+
+	if !found {
+		return MoveResult::Refuse;
+	}
+	// }
+
+	let (diff, special) = board_move(board, from, to);
+
+	// if !force {
+	let possible = possible_moves(&board, true);
+	if let Some(piece) = get_check(&board, false, &possible) {
+		board_apply(board, diff);
+
+		return MoveResult::Check(piece);
+	}
+	// }
+	MoveResult::Accept((diff, special))
+}
+fn diff_string(diff: Diff) -> String {
+	let mut output = String::new();
+
+	for entry in &diff {
+		if let Some((pos, _, to)) = *entry {
+			if !output.is_empty() {
+				output.push(' ');
 			}
-		}
-
-		if !found {
-			return MoveResult::Refuse;
-		}
-	}
-
-	let diff = board_move(board, from, to);
-
-	if !force {
-		let possible = possible_moves(&board, true);
-		if let Some(piece) = get_check(&board, false, &possible) {
-			board_apply(board, diff);
-
-			return MoveResult::Check(piece);
+			output.push_str(&position_string(pos));
+			output.push(' ');
+			output.push_str(to.to_str());
 		}
 	}
-	MoveResult::Accept(false)
+
+	output
 }
