@@ -139,7 +139,7 @@ pub fn main() {
 					}
 				}
 
-				if cmd != "MOVE" && castling != 0 {
+				if cmd != "MOVE" {
 					bad_request!();
 					return;
 				}
@@ -153,7 +153,7 @@ pub fn main() {
 						let from = parse_pos!(args[0]);
 						let to   = parse_pos!(args[1]);
 
-						match do_move(from, to, &mut board, false) {
+						match do_move(from, to, &mut board) {
 							MoveResult::Accept((diff, special)) => {
 								if let Some(string) = checkmate_status_string(&mut board, true) {
 									send!(string.to_string());
