@@ -18,6 +18,7 @@ macro_rules! none {
 }
 
 pub type Board = [[Piece; 8]; 8];
+pub type Pos  = (i8, i8);
 
 pub fn board_string(board: &Board) -> String {
 	let mut output = String::new();
@@ -58,34 +59,79 @@ pub fn board_bytes(board: &Board) -> [u8; 64] {
 	output
 }
 
-pub fn board_set(board: &mut Board, pos: (i8, i8), mut piece: Piece) -> bool {
-	let mut changed = false;
-	if let Piece::Pawn(mine) = piece {
-		if (mine && pos.1 == 0) ||
-			(!mine && pos.1 == 7) {
+pub fn en_passant_get_capture(board: &Board, mine: bool, pos: Pos) -> Option<Pos> {
+	let (x, y) = pos;
 
-			piece = Piece::Queen(mine);
-			changed = true;
+	let capture;
+	if mine  && y == 2 {
+		capture = (x, y + 1);
+	} else if !mine && y == 5 {
+		capture = (x, y - 1);
+	} else {
+		return None;
+	}
+	return if board_get(board, capture) != Piece::Pawn(!mine) { None } else { Some(capture) };
+}
+
+pub enum PosUnwinder {
+	Normal {
+		old:  Piece,
+		from: Pos,
+		to:   Pos
+	},
+	Promoted {
+		old_from: Piece,
+		from:     Pos,
+		old_to:   Piece,
+		to:       Pos
+	},
+	EnPassant {
+		old:  Piece,
+		from: Pos,
+		to:   Pos,
+		passant_capture: Pos,
+		passant_old:     Piece
+	}
+}
+pub fn board_set(board: &mut Board, pos: Pos, piece: Piece) {
+	board[pos.1 as usize][pos.0 as usize] = piece;
+}
+pub fn board_get(board: &Board, pos: Pos) -> Piece {
+	board[pos.1 as usize][pos.0 as usize]
+}
+pub fn board_move(board: &mut Board, from: Pos, to: Pos) -> [Option<(Pos, Piece)>; 3] {
+	let mut old_from = board_get(board, from);
+	let     old_to   = board_get(board, to);
+
+	let mut changed = [None; 3];
+	changed[0] = Some((from, old_from));
+	changed[1] = Some((to, old_to));
+
+	if let Piece::Pawn(mine) = old_from {
+		if (mine && to.1 == 0) ||
+			(!mine && to.1 == 7) {
+
+			old_from = Piece::Queen(mine);
+		} else if let Some(pos) = en_passant_get_capture(board, mine, to) {
+			changed[2] = Some((pos, board_get(board, pos)));
+			board_set(board, pos, Piece::Empty);
 		}
 	}
-	board[pos.1 as usize][pos.0 as usize] = piece;
+
+	board_set(board, to, old_from);
+	board_set(board, from, Piece::Empty);
 
 	changed
 }
-pub fn board_get(board: &Board, pos: (i8, i8)) -> &Piece {
-	&board[pos.1 as usize][pos.0 as usize]
-}
-pub fn board_move(board: &mut Board, from: (i8, i8), to: (i8, i8)) -> (Piece, Piece, bool) {
-	let piece = *board_get(board, from);
-	let old = *board_get(board, to);
-
-	let mut changed = board_set(board, to, piece);
-	changed = board_set(board, from, Piece::Empty) || changed;
-
-	(piece, old, changed)
+pub fn board_apply(board: &mut Board, diff: [Option<(Pos, Piece)>; 3]) {
+	for entry in &diff {
+		if let Some((pos, piece)) = *entry {
+			board_set(board, pos, piece);
+		}
+	}
 }
 
-pub fn possible_moves(board: &Board, mine: bool) -> HashMap<(i8, i8), Vec<(i8, i8)>> {
+pub fn possible_moves(board: &Board, mine: bool) -> HashMap<Pos, Vec<Pos>> {
 	let mut map = HashMap::new();
 
 	for (y, line) in board.iter().enumerate() {
@@ -108,11 +154,11 @@ pub fn possible_moves(board: &Board, mine: bool) -> HashMap<(i8, i8), Vec<(i8, i
 pub fn get_check(
 			board: &Board,
 			mine: bool,
-			possible: &HashMap<(i8, i8), Vec<(i8, i8)>>
-		) -> Option<(i8, i8)> {
+			possible: &HashMap<Pos, Vec<Pos>>
+		) -> Option<Pos> {
 	for (from, moves) in possible {
 		for pos in moves {
-			if let Piece::King(mine2) = *board_get(board, *pos) {
+			if let Piece::King(mine2) = board_get(board, *pos) {
 				if mine == mine2 {
 					return Some(*from);
 				}
@@ -139,15 +185,14 @@ pub fn check_status(board: &mut Board) -> CheckStatus {
 
 		for (from, moves) in possible {
 			for to in moves {
-				let (old_from, old_to, _) = board_move(board, *from, *to);
+				let diff = board_move(board, *from, *to);
 
 				let possible = possible_moves(board, !mine);
 				if get_check(board, mine, &possible).is_none() {
 					mate = false;
 				}
 
-				board_set(board, *from, old_from);
-				board_set(board, *to, old_to);
+				board_apply(board, diff);
 			}
 		}
 

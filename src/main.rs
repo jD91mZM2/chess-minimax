@@ -41,7 +41,7 @@ const DIRECTIONS_ALL: [Direction; 8] = [
 ];
 
 
-fn rotate(rel: (i8, i8), direction: &Direction) -> (i8, i8) {
+fn rotate(rel: Pos, direction: &Direction) -> Pos {
 	// Assumes current rotation is DownRight
 
 	let (x, y) = rel;
@@ -57,7 +57,7 @@ fn rotate(rel: (i8, i8), direction: &Direction) -> (i8, i8) {
 	}
 }
 
-fn position_string(input: (i8, i8)) -> String {
+fn position_string(input: Pos) -> String {
 	let mut output = String::with_capacity(2);
 	#[cfg(not(feature = "white"))]
 	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
@@ -71,7 +71,7 @@ fn position_string(input: (i8, i8)) -> String {
 
 	output
 }
-fn parse_position(input: &str) -> Option<(i8, i8)> {
+fn parse_position(input: &str) -> Option<Pos> {
 	let (mut x, mut y) = (None, None);
 
 	for c in input.chars() {

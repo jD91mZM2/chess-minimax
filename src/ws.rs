@@ -160,14 +160,14 @@ pub fn main() {
 									send!(string.to_string());
 									close!(1000, String::new());
 								}
-								if changed {
-									send!(format!("INTO-QUEEN {}", position_string(to)));
-								}
+								// if changed {
+								// 	send!(format!("INTO-QUEEN {}", position_string(to)));
+								// }
 								if castling == 0 {
 									send!(ACCEPT.to_string());
 
 									let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
-									let (_, _, changed) = board_move(&mut board, from, to);
+									/*let (_, _, changed) = */board_move(&mut board, from, to);
 
 									send!(format!("MOVE {} {}", position_string(from), position_string(to)));
 
@@ -176,9 +176,9 @@ pub fn main() {
 										close!(1000, String::new());
 									}
 
-									if changed {
-										send!(format!("INTO-QUEEN {}", position_string(to)));
-									}
+									// if changed {
+									// 	send!(format!("INTO-QUEEN {}", position_string(to)));
+									// }
 								}
 							},
 							MoveResult::Check(pos) => {
@@ -243,12 +243,12 @@ fn checkmate_status_string(board: &mut Board, my_turn: bool) -> Option<&'static 
 
 enum MoveResult {
 	Accept(bool),
-	Check((i8, i8)),
+	Check(Pos),
 	Refuse
 }
-fn do_move(from: (i8, i8), to: (i8, i8), board: &mut Board, force: bool) -> MoveResult {
+fn do_move(from: Pos, to: Pos, board: &mut Board, force: bool) -> MoveResult {
 	if !force {
-		let piece = *board_get(&board, from);
+		let piece = board_get(&board, from);
 		if piece.is_mine() {
 			return MoveResult::Refuse;
 		}
@@ -265,16 +265,15 @@ fn do_move(from: (i8, i8), to: (i8, i8), board: &mut Board, force: bool) -> Move
 		}
 	}
 
-	let (old_from, old_to, changed) = board_move(board, from, to);
+	let diff = board_move(board, from, to);
 
 	if !force {
 		let possible = possible_moves(&board, true);
 		if let Some(piece) = get_check(&board, false, &possible) {
-			board_set(board, from, old_from);
-			board_set(board, to, old_to);
+			board_apply(board, diff);
 
 			return MoveResult::Check(piece);
 		}
 	}
-	MoveResult::Accept(changed)
+	MoveResult::Accept(false)
 }

@@ -1,7 +1,7 @@
 use *;
 use std::io::{self, Write};
 
-fn positions_join<'a, I: Iterator<Item = &'a (i8, i8)>>(input: I) -> String {
+fn positions_join<'a, I: Iterator<Item = &'a Pos>>(input: I) -> String {
 	let mut output = String::new();
 	let mut first  = true;
 
@@ -88,7 +88,7 @@ pub fn main() {
 				let to = parse_pos!(args[1]);
 
 				if !force {
-					let piece = *board_get(&board, from);
+					let piece = board_get(&board, from);
 
 					if piece.is_mine() {
 						eprintln!("Can't move with that piece! It's mine!");
@@ -110,7 +110,7 @@ pub fn main() {
 					}
 				}
 
-				let (old_from, old_to, _) = board_move(&mut board, from, to);
+				let diff = board_move(&mut board, from, to);
 
 				if !force {
 					let possible = possible_moves(&board, true);
@@ -118,8 +118,7 @@ pub fn main() {
 						eprintln!("Can't move there! You'd place yourself in check!");
 						eprintln!("TIP: movef moves without checking first.");
 
-						board_set(&mut board, from, old_from);
-						board_set(&mut board, to, old_to);
+						board_apply(&mut board, diff);
 						continue;
 					}
 				}
@@ -162,7 +161,7 @@ pub fn main() {
 
 				let pos = parse_pos!(args[0]);
 
-				let possible = (*board_get(&board, pos)).possible_moves(&board, pos);
+				let possible = board_get(&board, pos).possible_moves(&board, pos);
 				if possible.is_empty() {
 					println!("No possible moves");
 					continue;

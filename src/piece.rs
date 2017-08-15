@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 pub struct NoSuchPieceErr;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Piece {
 	King(bool),
 	Queen(bool),
@@ -120,7 +120,7 @@ impl Piece {
 		}
 	}
 
-	pub fn moves(&self) -> [Option<(i8, i8)>; 3] {
+	pub fn moves(&self) -> [Option<Pos>; 3] {
 		// Returns DownRight
 		match *self {
 			Piece::King(_) |
@@ -145,7 +145,7 @@ impl Piece {
 		}
 	}
 
-	pub fn can_move(&self, board: &Board, rel: (i8, i8), abs: (i8, i8)) -> bool {
+	pub fn can_move(&self, board: &Board, rel: Pos, abs: Pos) -> bool {
 		let (rel_x, rel_y) = rel;
 		let (x, y) = abs;
 
@@ -163,21 +163,21 @@ impl Piece {
 
 		match *self {
 			Piece::Pawn(mine) => {
-				(mine == (rel_y < 0)) &&
+				mine == (rel_y < 0) &&  // Only move forwards
 					(rel_x.abs() != 2) &&
-					(rel_y.abs() != 2 ||
+					(rel_y.abs() != 2 || // Allow jumping twice initially (but don't jump over a piece)
 						(((!mine && y == 3) ||
 						(mine && y == 4)) &&
 						((rel_y == 2 && board_get(board, (x, y - 1)).is_empty()) ||
 						 (rel_y == -2 && board_get(board, (x, y + 1)).is_empty())))) &&
-					((rel_x.abs() == 0) == piece.is_empty()) &&
-					(rel_x.abs() != 1 || rel_y.abs() == 1)
+					(rel_x.abs() != 1 || rel_y.abs() == 1) && // Capture diagonally
+					(rel_x.abs() != 0) == (!piece.is_empty() || en_passant_get_capture(board, mine, abs).is_some())
 			},
 			_ => true,
 		}
 	}
 
-	pub fn possible_moves(&self, board: &Board, abs: (i8, i8)) -> Vec<(i8, i8)> {
+	pub fn possible_moves(&self, board: &Board, abs: Pos) -> Vec<Pos> {
 		// This is the most called function according to a profiler.
 		// I'm willing to pre-allocate too much if that means less allocations.
 

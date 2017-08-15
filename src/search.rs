@@ -16,7 +16,7 @@ pub fn score(board: &Board) -> i32 {
 
 	score
 }
-pub fn search(board: &mut Board, mine: bool, depth: u8, mut alpha: i32, mut beta: i32) -> (i32, (i8, i8), (i8, i8)) {
+pub fn search(board: &mut Board, mine: bool, depth: u8, mut alpha: i32, mut beta: i32) -> (i32, Pos, Pos) {
 	#[cfg(feature = "cache")]
 	let mut bytes = None;
 	#[cfg(feature = "cache")]
@@ -69,14 +69,11 @@ pub fn search(board: &mut Board, mine: bool, depth: u8, mut alpha: i32, mut beta
 			let new = *new;
 			let score;
 
-			// It *could* only return old_to, but then
-			// it wouldn't undo Pawn -> Queen.
-			let (old_from, old_to, _) = board_move(board, old, new);
+			let diff = board_move(board, old, new);
 
 			score = search(board, !mine, depth + 1, alpha, beta).0;
 
-			board_set(board, old, old_from);
-			board_set(board, new, old_to);
+			board_apply(board, diff); // undo
 
 			if (mine && score > max_or_min) || (!mine && score < max_or_min) {
 				max_or_min = score;
@@ -128,7 +125,7 @@ impl std::fmt::Display for CorruptedFileError {
 }
 
 #[cfg(feature = "cache")]
-fn read_move(board: &[u8; 64]) -> Result<((i8, i8), (i8, i8)), Box<std::error::Error>> {
+fn read_move(board: &[u8; 64]) -> Result<(Pos, Pos), Box<std::error::Error>> {
 	use std::ffi::OsStr;
 	use std::fs::File;
 	use std::io::Read;
@@ -152,7 +149,7 @@ fn read_move(board: &[u8; 64]) -> Result<((i8, i8), (i8, i8)), Box<std::error::E
 	Ok(((bytes[0] as i8, bytes[1] as i8), (bytes[2] as i8, bytes[3] as i8)))
 }
 #[cfg(feature = "cache")]
-fn write_move(board: &[u8; 64], from: (i8, i8), to: (i8, i8)) -> Result<(), Box<std::error::Error>> {
+fn write_move(board: &[u8; 64], from: Pos, to: Pos) -> Result<(), Box<std::error::Error>> {
 	use std::ffi::OsStr;
 	use std::fs::{self, OpenOptions};
 	use std::io::Write;
