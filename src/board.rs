@@ -106,8 +106,8 @@ pub fn board_move(board: &mut Board, from: Pos, to: Pos) -> (Diff, bool) {
 
 	let mut changed = [None; 3];
 	let mut special = false;
+
 	changed[0] = Some((from, old_from, Piece::Empty));
-	changed[1] = Some((to, old_to, old_from));
 
 	if let Piece::Pawn(mine) = old_from {
 		if (mine && to.1 == 0) ||
@@ -121,6 +121,8 @@ pub fn board_move(board: &mut Board, from: Pos, to: Pos) -> (Diff, bool) {
 			special = true;
 		}
 	}
+
+	changed[1] = Some((to, old_to, old_from));
 
 	board_set(board, to, old_from);
 	board_set(board, from, Piece::Empty);
