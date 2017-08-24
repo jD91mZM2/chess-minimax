@@ -28,18 +28,18 @@
 		<script src="js/jquery-3.2.1.min.js"></script>
 		<script src="js/chessboard-0.3.0.min.js"></script>
 		<script>
-			var server = location.hash.replace(/^#/, "");
+			let server = location.hash.replace(/^#/, "");
 			if (server === "") {
 				server = prompt("Server?", "localhost");
 				history.pushState(null, null, "#" + server);
 			}
-			var socket = new WebSocket("ws://" + server + ":27455/", "chess");
+			let socket = new WebSocket("ws://" + server + ":27455/", "chess");
 			function send(message) {
 				console.log("SEND: " + message);
 				socket.send(message);
 			}
 
-			var is_closed = false;
+			let is_closed = false;
 			socket.onopen = function(event) {
 				send("INIT v2");
 			}
@@ -50,9 +50,9 @@
 				}, 3000);
 			}
 
-			var undo;
+			let undo;
 
-			var board;
+			let board;
 			function init() {
 				board = ChessBoard("board", {
 					position: "start",
@@ -72,12 +72,12 @@
 				});
 			}
 
-			var waiting = false;
+			let waiting = false;
 
 			function command(args) {
 				$(".highlight").removeClass("highlight");
 
-				var cmd = args.shift();
+				let cmd = args.shift();
 				switch (cmd) {
 				case "ACCEPT":
 					break;
@@ -118,7 +118,7 @@
 
 			socket.onmessage = function(event) {
 				console.log("RECEIVED: " + event.data);
-				var args = event.data.split(" ");
+				let args = event.data.split(" ");
 				command(args);
 			}
 		</script>
