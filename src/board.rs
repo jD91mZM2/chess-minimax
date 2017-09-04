@@ -60,20 +60,6 @@ pub fn board_bytes(board: &Board) -> [u8; 64] {
 	output
 }
 
-pub fn en_passant_get_capture(board: &Board, mine: bool, pos: Pos) -> Option<Pos> {
-	let (x, y) = pos;
-
-	let capture;
-	if mine  && y == 2 {
-		capture = (x, y + 1);
-	} else if !mine && y == 5 {
-		capture = (x, y - 1);
-	} else {
-		return None;
-	}
-	if board_get(board, capture) != Piece::Pawn(!mine) { None } else { Some(capture) }
-}
-
 pub enum PosUnwinder {
 	Normal {
 		old:  Piece,
@@ -85,13 +71,6 @@ pub enum PosUnwinder {
 		from:     Pos,
 		old_to:   Piece,
 		to:       Pos
-	},
-	EnPassant {
-		old:  Piece,
-		from: Pos,
-		to:   Pos,
-		passant_capture: Pos,
-		passant_old:     Piece
 	}
 }
 pub fn board_set(board: &mut Board, pos: Pos, piece: Piece) {
@@ -114,10 +93,6 @@ pub fn board_move(board: &mut Board, from: Pos, to: Pos) -> (Diff, bool) {
 			(!mine && to.1 == 7) {
 
 			old_from = Piece::Queen(mine);
-			special = true;
-		} else if let Some(pos) = en_passant_get_capture(board, mine, to) {
-			changed[2] = Some((pos, board_get(board, pos), Piece::Empty));
-			board_set(board, pos, Piece::Empty);
 			special = true;
 		}
 	}
