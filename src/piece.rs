@@ -196,7 +196,8 @@ impl Piece {
 						(mine && y == 4)) &&
 						((rel_y == 2 && board_get(board, (x, y - 1)).is_empty()) ||
 						 (rel_y == -2 && board_get(board, (x, y + 1)).is_empty())))) &&
-					(rel_x.abs() != 1 || rel_y.abs() == 1) // Capture diagonally
+					(rel_x.abs() != 1 || rel_y.abs() == 1) && // Capture diagonally
+                    ((rel_x == 0) == piece.is_empty())
 			},
 			_ => true,
 		}
