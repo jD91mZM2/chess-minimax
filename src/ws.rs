@@ -99,7 +99,7 @@ pub fn main() {
 			let mut board = make_board();
 			#[cfg(feature = "white")]
 			{
-				let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
+				let (_, from, to) = start_search(&mut board);
 				board_move(&mut board, from, to);
 
 				send!(format!("WHITE MOVE {} {}", position_string(from), position_string(to)));
@@ -164,7 +164,7 @@ pub fn main() {
 									send!(format!("DIFF {}", diff_string(diff)));
 								}
 
-								let (_, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
+								let (_, from, to) = start_search(&mut board);
 								let (diff, special) = board_move(&mut board, from, to);
 
 								if special {

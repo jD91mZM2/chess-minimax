@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "threaded", feature(integer_atomics))]
+
 #[cfg(feature = "websocket")]
 extern crate websocket;
 #[cfg(feature = "cpuprofiler")]

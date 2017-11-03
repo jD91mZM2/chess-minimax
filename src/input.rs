@@ -193,7 +193,7 @@ pub fn main() {
 				#[cfg(feature = "cpuprofiler")]
 				PROFILER.lock().unwrap().start("crappy-chess-minimax.profile").unwrap();
 
-				let (score, from, to) = search(&mut board, true, 0, std::i32::MIN, std::i32::MAX);
+				let (score, from, to) = start_search(&mut board);
 
 				#[cfg(feature = "cpuprofiler")]
 				PROFILER.lock().unwrap().stop().unwrap();
@@ -201,7 +201,6 @@ pub fn main() {
 				board_move(&mut board, from, to);
 
 				println!("Final Score: {}", score);
-
 				println!("Move {} to {}", position_string(from), position_string(to));
 			},
 			_ => eprintln!("Unknown command"),
