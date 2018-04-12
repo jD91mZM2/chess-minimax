@@ -21,104 +21,104 @@ pub use search::*;
 
 #[derive(Debug)]
 pub enum Direction {
-	UpLeft,
-	UpRight,
-	LeftUp,
-	LeftDown,
-	RightUp,
-	RightDown,
-	DownLeft,
-	DownRight,
+    UpLeft,
+    UpRight,
+    LeftUp,
+    LeftDown,
+    RightUp,
+    RightDown,
+    DownLeft,
+    DownRight,
 }
 
 const DIRECTIONS_ALL: [Direction; 8] = [
-	Direction::UpLeft,
-	Direction::UpRight,
-	Direction::LeftUp,
-	Direction::LeftDown,
-	Direction::RightUp,
-	Direction::RightDown,
-	Direction::DownLeft,
-	Direction::DownRight
+    Direction::UpLeft,
+    Direction::UpRight,
+    Direction::LeftUp,
+    Direction::LeftDown,
+    Direction::RightUp,
+    Direction::RightDown,
+    Direction::DownLeft,
+    Direction::DownRight
 ];
 
 
 fn rotate(rel: Pos, direction: &Direction) -> Pos {
-	// Assumes current rotation is DownRight
+    // Assumes current rotation is DownRight
 
-	let (x, y) = rel;
-	match *direction {
-		Direction::UpLeft => (-x, -y),
-		Direction::UpRight => (x, -y),
-		Direction::LeftUp => (-y, -x),
-		Direction::LeftDown => (y, -x),
-		Direction::RightUp => (-y, x),
-		Direction::RightDown => (y, x),
-		Direction::DownLeft => (-x, y),
-		Direction::DownRight => (x, y),
-	}
+    let (x, y) = rel;
+    match *direction {
+        Direction::UpLeft => (-x, -y),
+        Direction::UpRight => (x, -y),
+        Direction::LeftUp => (-y, -x),
+        Direction::LeftDown => (y, -x),
+        Direction::RightUp => (-y, x),
+        Direction::RightDown => (y, x),
+        Direction::DownLeft => (-x, y),
+        Direction::DownRight => (x, y),
+    }
 }
 
 fn position_string(input: Pos) -> String {
-	let mut output = String::with_capacity(2);
-	#[cfg(not(feature = "white"))]
-	output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
-	#[cfg(feature = "white")]
-	output.push(std::char::from_u32(input.0 as u32 + 'A' as u32).unwrap());
+    let mut output = String::with_capacity(2);
+    #[cfg(not(feature = "white"))]
+    output.push(std::char::from_u32((7 - input.0) as u32 + 'A' as u32).unwrap());
+    #[cfg(feature = "white")]
+    output.push(std::char::from_u32(input.0 as u32 + 'A' as u32).unwrap());
 
-	#[cfg(not(feature = "white"))]
-	output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
-	#[cfg(feature = "white")]
-	output.push(std::char::from_u32((7 - input.1) as u32 + '1' as u32).unwrap());
+    #[cfg(not(feature = "white"))]
+    output.push(std::char::from_u32(input.1 as u32 + '1' as u32).unwrap());
+    #[cfg(feature = "white")]
+    output.push(std::char::from_u32((7 - input.1) as u32 + '1' as u32).unwrap());
 
-	output
+    output
 }
 fn parse_position(input: &str) -> Option<Pos> {
-	let (mut x, mut y) = (None, None);
+    let (mut x, mut y) = (None, None);
 
-	for c in input.chars() {
-		let code = c as u32;
+    for c in input.chars() {
+        let code = c as u32;
 
-		// The following blocks are required
-		// because #[cfg]s on expressions are
-		// apparently experimental.
+        // The following blocks are required
+        // because #[cfg]s on expressions are
+        // apparently experimental.
 
-		if code >= 'a' as u32 && code <= 'h' as u32 {
-			#[cfg(not(feature = "white"))]
-			{ x = Some(('h' as u32 - code) as i8); }
-			#[cfg(feature = "white")]
-			{ x = Some((code - 'a' as u32) as i8); }
-		} else if code >= 'A' as u32 && code <= 'H' as u32 {
-			#[cfg(not(feature = "white"))]
-			{ x = Some(('H' as u32 - code) as i8); }
-			#[cfg(feature = "white")]
-			{ x = Some((code - 'A' as u32) as i8); }
-		} else if code >= '1' as u32 && code <= '8' as u32 {
-			#[cfg(not(feature = "white"))]
-			{ y = Some((code - '1' as u32) as i8); }
-			#[cfg(feature = "white")]
-			{ y = Some(('8' as u32 - code) as i8); }
-		} else {
-			return None;
-		}
-	}
+        if code >= 'a' as u32 && code <= 'h' as u32 {
+            #[cfg(not(feature = "white"))]
+            { x = Some(('h' as u32 - code) as i8); }
+            #[cfg(feature = "white")]
+            { x = Some((code - 'a' as u32) as i8); }
+        } else if code >= 'A' as u32 && code <= 'H' as u32 {
+            #[cfg(not(feature = "white"))]
+            { x = Some(('H' as u32 - code) as i8); }
+            #[cfg(feature = "white")]
+            { x = Some((code - 'A' as u32) as i8); }
+        } else if code >= '1' as u32 && code <= '8' as u32 {
+            #[cfg(not(feature = "white"))]
+            { y = Some((code - '1' as u32) as i8); }
+            #[cfg(feature = "white")]
+            { y = Some(('8' as u32 - code) as i8); }
+        } else {
+            return None;
+        }
+    }
 
-	if x.is_none() || y.is_none() {
-		return None;
-	}
-	Some((x.unwrap(), y.unwrap()))
+    if x.is_none() || y.is_none() {
+        return None;
+    }
+    Some((x.unwrap(), y.unwrap()))
 }
 
 
 fn main() {
-	#[cfg(all(feature = "websocket", feature = "cpuprofiler"))]
-	compile_error!("Oh no, you can't have both websocket and cpuprofiler.");
+    #[cfg(all(feature = "websocket", feature = "cpuprofiler"))]
+    compile_error!("Oh no, you can't have both websocket and cpuprofiler.");
 
-	#[cfg(all(feature = "public", not(feature = "websocket")))]
-	compile_error!("Oh no, you can't have public without websocket.");
+    #[cfg(all(feature = "public", not(feature = "websocket")))]
+    compile_error!("Oh no, you can't have public without websocket.");
 
-	#[cfg(not(feature = "websocket"))]
-	input::main();
-	#[cfg(feature = "websocket")]
-	ws::main();
+    #[cfg(not(feature = "websocket"))]
+    input::main();
+    #[cfg(feature = "websocket")]
+    ws::main();
 }
