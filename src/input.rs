@@ -26,12 +26,13 @@ pub fn main() {
     let mut stderr = io::stderr(); stderr.lock();
 
     let mut prompt = Prompt {
+        board: &mut board,
         stdout: &mut stdout,
         stderr: &mut stderr
     };
 
     loop {
-        prompt.print_prompt(&mut board).unwrap();
+        prompt.print_prompt().unwrap();
 
         let mut cmd = String::new();
         match stdin.read_line(&mut cmd) {
@@ -43,17 +44,19 @@ pub fn main() {
             }
         };
 
-        prompt.apply_input(&mut board, &cmd).unwrap();
+        prompt.apply_input(&cmd).unwrap();
     }
 }
 
 pub struct Prompt<'a, Out: Write + 'a, Err: Write + 'a> {
+    board: &'a mut Board,
     stdout: &'a mut Out,
     stderr: &'a mut Err
 }
 impl<'a, Out: Write + 'a, Err: Write + 'a> Prompt<'a, Out, Err> {
-    pub fn print_prompt(&mut self, board: &mut Board) -> io::Result<()> {
-        let out = &mut self.stdout;
+    pub fn print_prompt(&mut self) -> io::Result<()> {
+        let board = &mut *self.board;
+        let out = &mut *self.stdout;
 
         #[cfg(not(feature = "white"))]
         match check_status(board) {
@@ -73,9 +76,10 @@ impl<'a, Out: Write + 'a, Err: Write + 'a> Prompt<'a, Out, Err> {
         write!(out, "> ")?;
         out.flush()
     }
-    pub fn apply_input(&mut self, board: &mut Board, cmd: &str) -> io::Result<()> {
-        let out = &mut self.stdout;
-        let err = &mut self.stderr;
+    pub fn apply_input(&mut self, cmd: &str) -> io::Result<()> {
+        let board = &mut *self.board;
+        let out = &mut *self.stdout;
+        let err = &mut *self.stderr;
 
         let mut args = cmd.split_whitespace();
         let cmd = match args.next() {
