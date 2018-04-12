@@ -104,7 +104,6 @@ pub fn parse_position(input: &str) -> Option<Pos> {
     Some((x.unwrap(), y.unwrap()))
 }
 
-
 pub fn main() {
     #[cfg(all(feature = "websocket", feature = "cpuprofiler"))]
     compile_error!("Oh no, you can't have both websocket and cpuprofiler.");
