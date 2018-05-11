@@ -13,7 +13,6 @@ default-features = false
 features = ["sync"]
 
 [features]
-cache    = []
 public   = []
 threaded = []
 white    = []

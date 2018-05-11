@@ -27,18 +27,6 @@ pub fn start_search(board: &mut Board) -> (i32, Pos, Pos) {
     return search(board, true, 0, std::i32::MIN, std::i32::MAX);
     #[cfg(feature = "threaded")]
     {
-        #[cfg(feature = "cache")]
-        let mut bytes = None;
-        #[cfg(feature = "cache")]
-        {
-            if depth == 0 {
-                bytes = Some(board_bytes(&board));
-                if let Ok((from, to)) = read_move(bytes.as_ref().unwrap()) {
-                    return (0, from, to);
-                }
-            }
-        }
-
         let possible = possible_moves(board, true);
 
         let found      = Arc::new(AtomicBool::new(false));
@@ -79,13 +67,6 @@ pub fn start_search(board: &mut Board) -> (i32, Pos, Pos) {
         let selected   = selected.lock().unwrap();
 
         if found {
-            #[cfg(feature = "cache")]
-            {
-                if depth == 0 {
-                    // let _ = write_move(bytes.as_ref().unwrap(), selected.0, selected.1);
-                    write_move(bytes.as_ref().unwrap(), selected.0, selected.1).unwrap();
-                }
-            }
             (max_or_min, selected.0, selected.1)
         } else {
             (score(board), (0, 0), (0, 0))
@@ -93,61 +74,7 @@ pub fn start_search(board: &mut Board) -> (i32, Pos, Pos) {
     }
 }
 
-#[cfg(feature = "cache")]
-#[derive(Debug)]
-pub struct CorruptedFileError;
-
-#[cfg(feature = "cache")]
-impl std::error::Error for CorruptedFileError {
-    fn description(&self) -> &str {
-        "Corrupted move file"
-    }
-}
-#[cfg(feature = "cache")]
-impl std::fmt::Display for CorruptedFileError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        write!(f, "{}", self.description())
-    }
-}
-
-#[cfg(feature = "cache")]
-fn read_move(board: &[u8; 64]) -> Result<(Pos, Pos), Box<std::error::Error>> {
-    use std::ffi::OsStr;
-    use std::fs::File;
-    use std::io::Read;
-    use std::os::unix::ffi::OsStrExt;
-    use std::path::Path;
-
-    let path = Path::new("cache").join(OsStr::from_bytes(board));
-    let mut bytes = Vec::new();
-    {
-        let mut file = File::open(path)?;
-        file.read_to_end(&mut bytes)?;
-    }
-
-    if bytes.len() != 4 {
-        return Err(Box::new(CorruptedFileError));
-    }
-    if !bytes.iter().all(|i| *i < 8) {
-        return Err(Box::new(CorruptedFileError));
-    }
-
-    Ok(((bytes[0] as i8, bytes[1] as i8), (bytes[2] as i8, bytes[3] as i8)))
-}
 pub fn search(board: &mut Board, mine: bool, depth: u8, mut alpha: i32, mut beta: i32) -> (i32, Pos, Pos) {
-    #[cfg(feature = "cache")]
-    let mut bytes = None;
-    #[cfg(feature = "cache")]
-    {
-        if depth == 0 {
-            bytes = Some(board_bytes(&board));
-            if let Ok((from, to)) = read_move(bytes.as_ref().unwrap()) {
-                return (0, from, to);
-            }
-        }
-    }
-
     let mut myking   = false;
     let mut yourking = false;
     for line in &*board {
@@ -210,81 +137,8 @@ pub fn search(board: &mut Board, mine: bool, depth: u8, mut alpha: i32, mut beta
     }
 
     if found {
-        #[cfg(feature = "cache")]
-        {
-            if depth == 0 {
-                // let _ = write_move(bytes.as_ref().unwrap(), selected.0, selected.1);
-                write_move(bytes.as_ref().unwrap(), selected.0, selected.1).unwrap();
-            }
-        }
         (max_or_min, selected.0, selected.1)
     } else {
         (score(board), (0, 0), (0, 0))
     }
-}
-
-#[cfg(feature = "cache")]
-#[derive(Debug)]
-pub struct CorruptedFileError;
-
-#[cfg(feature = "cache")]
-impl std::error::Error for CorruptedFileError {
-    fn description(&self) -> &str {
-        "Corrupted move file"
-    }
-}
-#[cfg(feature = "cache")]
-impl std::fmt::Display for CorruptedFileError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        write!(f, "{}", self.description())
-    }
-}
-
-#[cfg(feature = "cache")]
-fn read_move(board: &[u8; 64]) -> Result<(Pos, Pos), Box<std::error::Error>> {
-    use std::ffi::OsStr;
-    use std::fs::File;
-    use std::io::Read;
-    use std::os::unix::ffi::OsStrExt;
-    use std::path::Path;
-
-    let path = Path::new("cache").join(OsStr::from_bytes(board));
-    let mut bytes = Vec::new();
-    {
-        let mut file = File::open(path)?;
-        file.read_to_end(&mut bytes)?;
-    }
-
-    if bytes.len() != 4 {
-        return Err(Box::new(CorruptedFileError));
-    }
-    if !bytes.iter().all(|i| *i < 8) {
-        return Err(Box::new(CorruptedFileError));
-    }
-
-    Ok(((bytes[0] as i8, bytes[1] as i8), (bytes[2] as i8, bytes[3] as i8)))
-}
-#[cfg(feature = "cache")]
-fn write_move(board: &[u8; 64], from: Pos, to: Pos) -> Result<(), Box<std::error::Error>> {
-    use std::ffi::OsStr;
-    use std::fs::{self, OpenOptions};
-    use std::io::Write;
-    use std::os::unix::ffi::OsStrExt;
-    use std::path::Path;
-
-    // This will probably not even compile on Windows.
-    // Guess what? I don't even care.
-
-    let _ = fs::create_dir("cache");
-    let path = Path::new("cache").join(OsStr::from_bytes(board));
-
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(path)?;
-    file.write_all(&[from.0 as u8, from.1 as u8, to.0 as u8, to.1 as u8])?;
-
-    Ok(())
 }

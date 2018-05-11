@@ -95,25 +95,6 @@ impl Piece {
         #[cfg(feature = "white")]
         to_str!("white", "black")
     }
-    #[cfg(feature = "cache")]
-    pub fn to_byte(&self) -> u8 {
-        let (mine, mut byte) = match *self {
-            Piece::King(mine) => (mine, 14),
-            Piece::Queen(mine) => (mine, 12),
-            Piece::Rook(mine) => (mine, 10),
-            Piece::Bishop(mine) => (mine, 8),
-            Piece::Knight(mine) => (mine, 6),
-            Piece::Pawn(mine) => (mine, 4),
-            Piece::Empty => (false, 2),
-        };
-        // Can't use 0-indexed because null bytes.
-
-        if !mine {
-            byte += 1;
-        }
-
-        byte
-    }
 
     pub fn is_empty(&self) -> bool {
         match *self {

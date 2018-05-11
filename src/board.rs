@@ -45,20 +45,6 @@ pub fn board_string(board: &Board) -> String {
 
     output
 }
-#[cfg(feature = "cache")]
-pub fn board_bytes(board: &Board) -> [u8; 64] {
-    let mut output = [0; 64];
-    let mut index = 0;
-
-    for line in board {
-        for piece in line {
-            output[index] = piece.to_byte();
-            index += 1;
-        }
-    }
-
-    output
-}
 
 pub enum PosUnwinder {
     Normal {
