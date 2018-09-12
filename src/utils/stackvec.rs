@@ -1,5 +1,6 @@
 use std::{
-    mem,
+    fmt,
+    mem::{self, ManuallyDrop},
     ops::{Deref, DerefMut},
     ptr,
 };
@@ -25,8 +26,9 @@ macro_rules! impl_array {
 impl_array!(1, 2, 3, 4, 5, 6, 7, 8);
 
 /// A stack allocated vector-like container
+#[derive(Clone)]
 pub struct StackVec<T: Array> {
-    array: T,
+    array: ManuallyDrop<T>,
     len: usize
 }
 impl<T: Array> Default for StackVec<T> {
@@ -84,6 +86,17 @@ impl<T: Array> StackVec<T> {
         self.len += Q::size();
     }
 }
+impl<T: Array> Drop for StackVec<T> {
+    fn drop(&mut self) {
+        assert!(self.len <= std::isize::MAX as usize);
+
+        for i in 0..self.len as isize {
+            unsafe {
+                ptr::drop_in_place(self.ptr_mut().offset(i));
+            }
+        }
+    }
+}
 impl<T: Array> Deref for StackVec<T> {
     type Target = [T::Item];
 
@@ -100,11 +113,62 @@ impl<T: Array> DerefMut for StackVec<T> {
         }
     }
 }
+impl<I: fmt::Debug, T: Array<Item = I>> fmt::Debug for StackVec<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        (&*self as &[T::Item]).fmt(f)
+    }
+}
 impl<'a, T: Array> IntoIterator for &'a StackVec<T> {
     type Item = &'a T::Item;
     type IntoIter = std::slice::Iter<'a, T::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+impl<'a, T: Array> IntoIterator for StackVec<T> {
+    type Item = T::Item;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(mut self) -> Self::IntoIter {
+        let iter = IntoIter {
+            ptr: self.ptr_mut(),
+            len: self.len
+        };
+        mem::forget(self); // Don't call destructor
+        iter
+    }
+}
+
+/// An owning iterator over a StackVec
+pub struct IntoIter<T: Array> {
+    ptr: *mut T::Item,
+    len: usize
+}
+impl<T: Array> Iterator for IntoIter<T> {
+    type Item = T::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.len == 0 {
+            return None;
+        }
+
+        unsafe {
+            let item = ptr::read(self.ptr);
+            self.ptr = self.ptr.offset(1);
+            self.len -= 1;
+            return Some(item);
+        }
+    }
+}
+impl<T: Array> Drop for IntoIter<T> {
+    fn drop(&mut self) {
+        unsafe {
+            while self.len > 0 {
+                self.len -= 1;
+                ptr::drop_in_place(self.ptr);
+                self.ptr = self.ptr.offset(1);
+            }
+        }
     }
 }

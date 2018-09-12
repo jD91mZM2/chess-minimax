@@ -1,10 +1,13 @@
+#[macro_use] extern crate failure;
+
 use std::fmt;
 
 pub mod board;
 pub mod piece;
-crate mod utils;
+pub(crate) mod utils;
 
-#[derive(Debug, Default, Clone, Copy)]
+/// A position on the board
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Pos(pub i8, pub i8);
 impl Pos {
     /// Returns true if the position is actually within the boundaries of a board
@@ -50,9 +53,30 @@ impl fmt::Display for Pos {
         write!(f, "{}{}", ('A' as u8 + x as u8) as char, board::WIDTH-y)
     }
 }
+/// An error parsing a position from a string
+#[derive(Debug, Fail)]
+#[fail(display = "invalid position string")]
+pub struct ParsePosError;
+impl std::str::FromStr for Pos {
+    type Err = ParsePosError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut chars = s.chars();
+
+        let x = match chars.next() {
+            Some(c @ 'a'..='h') => c as u8 - b'a',
+            Some(c @ 'A'..='H') => c as u8 - b'A',
+            _ => return Err(ParsePosError)
+        };
+        let y = match chars.next() {
+            Some(c @ '1'..='8') => b'8' - c as u8,
+            _ => return Err(ParsePosError)
+        };
+        Ok(Pos(x as i8, y as i8))
+    }
+}
 
 /// What side a piece belongs to
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
     Black,
     White

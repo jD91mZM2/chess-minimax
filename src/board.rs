@@ -1,8 +1,18 @@
 use crate::{
     Pos,
     Side,
-    piece::{Piece, PieceKind}
+    piece::{Piece, PieceKind},
+    utils::stackvec::StackVec
 };
+use std::mem;
+
+pub type Change = StackVec<[Undo; 3]>;
+
+/// Describes how to revert a change to the board. Used for undoing moves.
+pub enum Undo {
+    Set(Pos, Option<Piece>)
+    // TODO
+}
 
 /// The width (and height, because square) of the board
 pub const WIDTH: i8 = 8;
@@ -48,11 +58,11 @@ impl Board {
         self.pieces[y as usize][x as usize].as_ref()
     }
     /// Get a mutable reference to the piece at the requested position
-    pub fn get_mut(&mut self, pos: Pos) -> Option<&mut Piece> {
+    pub fn get_mut(&mut self, pos: Pos) -> &mut Option<Piece> {
         assert!(pos.is_valid());
 
         let Pos(x, y) = pos;
-        self.pieces[y as usize][x as usize].as_mut()
+        &mut self.pieces[y as usize][x as usize]
     }
 
     /// Returns the side the computer plays as
@@ -99,50 +109,49 @@ impl Board {
             _ => true
         }
     }
-    pub fn each_piece<F, T>(&mut self, side: Side, mut f: F) -> Option<T>
-        where F: FnMut(&mut Self, Pos) -> Option<T>
-    {
-        for y in 0..WIDTH {
-            for x in 0..WIDTH {
-                let pos = Pos(x, y);
-                if self.get(pos).map(|p| p.side != side).unwrap_or(true) {
-                    continue;
-                }
-                if let ret @ Some(_) = f(self, pos) {
-                    return ret;
-                }
-            }
+    /// Run the function `f` for each piece that belongs to `side`
+    pub fn pieces(&mut self, side: Side) -> PieceIter {
+        PieceIter {
+            side,
+            pos: Pos::default()
         }
-        None
     }
-    pub fn each_move_for<F, T>(&mut self, pos: Pos, mut f: F) -> Option<T>
-        where F: FnMut(&mut Self, Pos) -> Option<T>
-    {
-        let piece = match self.get(pos) {
-            Some(piece) => piece,
-            None => return None
+    /// Run the function `f` for each move that the piece at position `pos` can make
+    pub fn moves_for(&mut self, pos: Pos) -> MoveIter {
+        let (moves, repeat) = match self.get(pos) {
+            Some(piece) => piece.moves(),
+            None => (StackVec::new(), false)
         };
+        MoveIter {
+            start: pos,
+            repeat,
+            repeat_cursor: None,
+            moves,
+            i: 0
+        }
+    }
 
-        let (moves, repeat) = piece.moves();
-        for &original_move in &moves {
-            let mut m = original_move;
-            loop {
-                if !self.can_move(pos, m) {
-                    break;
-                }
+    /// Move a piece, replacing whatever was already on `to`. Handles any logic
+    /// like spawning a queen. Can be undone.
+    pub fn move_(&mut self, from: Pos, to: Pos) -> Change {
+        let mut vec = StackVec::new();
 
-                if let ret @ Some(_) = f(self, pos + m) {
-                    return ret;
-                }
+        let piece = mem::replace(self.get_mut(from), None);
+        let old = mem::replace(self.get_mut(to), piece);
 
-                if !repeat {
-                    break
-                }
-
-                m += original_move;
+        vec.append([
+            Undo::Set(from, piece),
+            Undo::Set(to, old)
+        ]);
+        vec
+    }
+    /// Undo a move
+    pub fn undo(&mut self, change: Change) {
+        for undo in change {
+            match undo {
+                Undo::Set(pos, piece) => *self.get_mut(pos) = piece
             }
         }
-        None
     }
 }
 impl<'a> IntoIterator for &'a Board {
@@ -151,5 +160,75 @@ impl<'a> IntoIterator for &'a Board {
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+/// While `PieceIter` doesn't actually implement the `Iterator` trait, it does
+/// let you iterate pieces using the `next` function
+#[derive(Debug, Clone, Copy)]
+pub struct PieceIter {
+    side: Side,
+    pos: Pos
+}
+impl PieceIter {
+    /// Gets the next position of a piece in the "iterator"
+    pub fn next(&mut self, board: &Board) -> Option<Pos> {
+        {
+            let Pos(_, y) = self.pos;
+            if y >= WIDTH {
+                return None;
+            }
+        }
+        loop {
+            let Pos(ref mut x, ref mut y) = self.pos;
+            *x += 1;
+            if *x >= WIDTH {
+                *x = 0;
+                *y += 1;
+
+                if *y >= WIDTH {
+                    return None;
+                }
+            }
+
+            if board.get(self.pos).map(|p| p.side == self.side).unwrap_or(false) {
+                break;
+            }
+        }
+        Some(self.pos)
+    }
+}
+
+/// While `MoveIter` doesn't actually implement the `Iterator` trait, it does
+/// let you iterate moves using the `next` function
+#[derive(Debug, Clone)]
+pub struct MoveIter {
+    start: Pos,
+    repeat: bool,
+    repeat_cursor: Option<(Pos, Pos)>,
+    moves: StackVec<[Pos; 8]>,
+    i: usize
+}
+impl MoveIter {
+    /// Gets the next destination for a move in the "iterator"
+    pub fn next(&mut self, board: &Board) -> Option<Pos> {
+        if let Some((velocity, ref mut cursor)) = self.repeat_cursor {
+            if board.can_move(self.start, *cursor) {
+                *cursor += velocity;
+                return Some(*cursor);
+            } else {
+                self.repeat_cursor = None;
+            }
+        }
+        while let Some(&m) = self.moves.get(self.i) {
+            self.i += 1;
+            if board.can_move(self.start, m) {
+                if self.repeat {
+                    self.repeat_cursor = Some((m, self.start + m));
+                }
+                return Some(self.start + m);
+            }
+        }
+        None
     }
 }
