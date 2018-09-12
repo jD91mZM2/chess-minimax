@@ -18,13 +18,12 @@ pub enum Undo {
 pub const WIDTH: i8 = 8;
 
 /// A typical chess board
+#[derive(Debug)]
 pub struct Board {
-    side: Side,
     pieces: [[Option<Piece>; WIDTH as usize]; WIDTH as usize],
 }
-impl Board {
-    /// Create a new chess board with the default pieces
-    pub fn new(side: Side) -> Self {
+impl Default for Board {
+    fn default() -> Self {
         use crate::piece::PieceKind::{self, *};
 
         #[inline(always)]
@@ -37,18 +36,31 @@ impl Board {
         }
 
         Self {
-            side,
             pieces: [
-[black(Rook), black(Knight), black(Bishop), black(Queen), black(King), black(Bishop), black(Knight), black(Rook)],
-[black(Pawn), black(Pawn),   black(Pawn),   black(Pawn),  black(Pawn), black(Pawn),   black(Pawn),   black(Pawn)],
+[None,        None,          None,          None,         None,        None,          None,          None],
+[None,        None,          None,          None,         None,        None,          None,          None],
+[black(King), None,          None,          None,         None,        None,          None,          None],
+[None,        None,          None,          None,         white(Rook), None,          white(Rook),   None],
 [None,        None,          None,          None,         None,        None,          None,          None],
 [None,        None,          None,          None,         None,        None,          None,          None],
 [None,        None,          None,          None,         None,        None,          None,          None],
 [None,        None,          None,          None,         None,        None,          None,          None],
-[white(Pawn), white(Pawn),   white(Pawn),   white(Pawn),  white(Pawn), white(Pawn),   white(Pawn),   white(Pawn)],
-[white(Rook), white(Knight), white(Bishop), white(Queen), white(King), white(Bishop), white(Knight), white(Rook)]
+//[black(Rook), black(Knight), black(Bishop), black(Queen), black(King), black(Bishop), black(Knight), black(Rook)],
+//[black(Pawn), black(Pawn),   black(Pawn),   black(Pawn),  black(Pawn), black(Pawn),   black(Pawn),   black(Pawn)],
+//[None,        None,          None,          None,         None,        None,          None,          None],
+//[None,        None,          None,          None,         None,        None,          None,          None],
+//[None,        None,          None,          None,         None,        None,          None,          None],
+//[None,        None,          None,          None,         None,        None,          None,          None],
+//[white(Pawn), white(Pawn),   white(Pawn),   white(Pawn),  white(Pawn), white(Pawn),   white(Pawn),   white(Pawn)],
+//[white(Rook), white(Knight), white(Bishop), white(Queen), white(King), white(Bishop), white(Knight), white(Rook)]
             ]
         }
+    }
+}
+impl Board {
+    /// Create a new chess board with the default pieces
+    pub fn new() -> Self {
+        Self::default()
     }
     /// Get a reference to the piece at the requested position
     pub fn get(&self, pos: Pos) -> Option<&Piece> {
@@ -65,10 +77,6 @@ impl Board {
         &mut self.pieces[y as usize][x as usize]
     }
 
-    /// Returns the side the computer plays as
-    pub fn side(&self) -> Side {
-        self.side
-    }
     /// Return a reference over all the rows, starting at 8 going down to 1
     pub fn rows(&self) -> &[[Option<Piece>; WIDTH as usize]; WIDTH as usize] {
         &self.pieces
@@ -153,6 +161,17 @@ impl Board {
             }
         }
     }
+
+    /// Calculate the total score for a certain side
+    pub fn score(&mut self, side: Side) -> i16 {
+        let mut score = 0;
+        let mut pieces = self.pieces(side);
+        while let Some(pos) = pieces.next(&self) {
+            let piece = self.get(pos).unwrap();
+            score += piece.kind.worth() as i16;
+        }
+        score
+    }
 }
 impl<'a> IntoIterator for &'a Board {
     type Item = &'a [Option<Piece>; WIDTH as usize];
@@ -173,29 +192,28 @@ pub struct PieceIter {
 impl PieceIter {
     /// Gets the next position of a piece in the "iterator"
     pub fn next(&mut self, board: &Board) -> Option<Pos> {
-        {
-            let Pos(_, y) = self.pos;
-            if y >= WIDTH {
+        if !self.pos.is_valid() {
+            return None;
+        }
+        let mut pos;
+        loop {
+            pos = self.pos;
+            if !pos.is_valid() {
                 return None;
             }
-        }
-        loop {
+
             let Pos(ref mut x, ref mut y) = self.pos;
             *x += 1;
             if *x >= WIDTH {
                 *x = 0;
                 *y += 1;
-
-                if *y >= WIDTH {
-                    return None;
-                }
             }
 
-            if board.get(self.pos).map(|p| p.side == self.side).unwrap_or(false) {
+            if board.get(pos).map(|p| p.side == self.side).unwrap_or(false) {
                 break;
             }
         }
-        Some(self.pos)
+        Some(pos)
     }
 }
 
@@ -212,10 +230,14 @@ pub struct MoveIter {
 impl MoveIter {
     /// Gets the next destination for a move in the "iterator"
     pub fn next(&mut self, board: &Board) -> Option<Pos> {
-        if let Some((velocity, ref mut cursor)) = self.repeat_cursor {
-            if board.can_move(self.start, *cursor) {
-                *cursor += velocity;
-                return Some(*cursor);
+        if let Some((velocity, ref mut m)) = self.repeat_cursor {
+            *m += velocity;
+            if board.can_move(self.start, *m) {
+                let target = self.start + *m;
+                if board.get(target).is_some() {
+                    self.repeat_cursor = None;
+                }
+                return Some(target);
             } else {
                 self.repeat_cursor = None;
             }
@@ -223,10 +245,11 @@ impl MoveIter {
         while let Some(&m) = self.moves.get(self.i) {
             self.i += 1;
             if board.can_move(self.start, m) {
-                if self.repeat {
-                    self.repeat_cursor = Some((m, self.start + m));
+                let target = self.start + m;
+                if self.repeat && board.get(target).is_none() {
+                    self.repeat_cursor = Some((m, m));
                 }
-                return Some(self.start + m);
+                return Some(target);
             }
         }
         None

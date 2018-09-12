@@ -5,19 +5,23 @@ use chess_minimax::{
 };
 use failure::Error;
 use rustyline::{error::ReadlineError, Editor};
-use std::io::{self, Write};
+use std::{
+    collections::HashSet,
+    io::{self, Write}
+};
 
 struct Session<W: Write> {
     out: W,
     board: Board,
-    undo: Option<Change>
+    side: Side,
+    undo: Option<Change>,
+    highlight: HashSet<Pos>
 }
 impl<W: Write> Session<W> {
     fn draw(&mut self) -> io::Result<()> {
         use termion::{color::{self, *}, style::{self, *}};
         write!(self.out, "  {}{}", Fg(Red), Bold)?;
-        let mut white;
-        let iter: Box<Iterator<Item = _>> = match self.board.side() {
+        let iter: Box<Iterator<Item = _>> = match self.side {
             Side::White => {
                 writeln!(self.out, " A  B  C  D  E  F  G  H{}", Fg(color::Reset))?;
                 Box::new(self.board.iter().enumerate())
@@ -27,21 +31,22 @@ impl<W: Write> Session<W> {
                 Box::new(self.board.iter().enumerate().rev())
             }
         };
-        for (i, row) in iter {
-            white = i % 2 == 0;
-            write!(self.out, "{}{}{} ", Fg(Red), 8-i, Fg(color::Reset))?;
-            let iter: Box<Iterator<Item = _>> = match self.board.side() {
-                Side::White => Box::new(row.into_iter()),
-                Side::Black => Box::new(row.into_iter().rev()),
+        for (y, row) in iter {
+            write!(self.out, "{}{}{} ", Fg(Red), 8-y, Fg(color::Reset))?;
+            let iter: Box<Iterator<Item = _>> = match self.side {
+                Side::White => Box::new(row.into_iter().enumerate()),
+                Side::Black => Box::new(row.into_iter().enumerate().rev()),
             };
-            for piece in iter {
+            for (x, piece) in iter {
+                let white = (y % 2 == 0) == (x % 2 == 0);
                 let piece = piece.map(|p| p.to_char()).unwrap_or(' ');
-                if white {
+                if self.highlight.contains(&Pos(x as i8, y as i8)) {
+                    write!(self.out, "{}{} {} ", Bg(Yellow), Fg(Black), piece)?;
+                } else if white {
                     write!(self.out, "{}{} {} ", Bg(White), Fg(Black), piece)?;
                 } else {
                     write!(self.out, "{}{} {} ", Bg(Black), Fg(White), piece)?;
                 }
-                white = !white;
             }
             writeln!(self.out, "{}{}", Bg(color::Reset), Fg(color::Reset))?;
         }
@@ -53,6 +58,7 @@ impl<W: Write> Session<W> {
         let mut first = true;
         let mut moves = self.board.moves_for(from);
         while let Some(to) = moves.next(&self.board) {
+            self.highlight.insert(to);
             if !first {
                 write!(self.out, ", ")?;
             }
@@ -64,7 +70,7 @@ impl<W: Write> Session<W> {
     }
     fn command(&mut self, line: &str) -> io::Result<()> {
         macro_rules! println {
-            ($($arg:tt),*) => {
+            ($($arg:expr),*) => {
                 writeln!(self.out$(, $arg)*)?;
             }
         }
@@ -101,7 +107,7 @@ impl<W: Write> Session<W> {
             Some("all") => {
                 expect!(args.is_empty(), "all");
 
-                let mut pieces = self.board.pieces(self.board.side());
+                let mut pieces = self.board.pieces(self.side);
                 while let Some(pos) = pieces.next(&self.board) {
                     self.possible(pos)?;
                 }
@@ -134,7 +140,30 @@ impl<W: Write> Session<W> {
                         println!("no recent move to undo");
                     }
                 }
-            }
+            },
+            Some("score") => {
+                println!("Black score: {}", self.board.score(Side::Black));
+                println!("White score: {}", self.board.score(Side::White));
+            },
+            Some("go") => {
+                expect!(args.is_empty(), "go");
+
+                match self.board.minimax(4, !self.side) {
+                    Some(res) => {
+                        self.board.move_(res.from, res.to);
+                        println!("move {} to {}", res.from, res.to);
+                        println!("final score: {}", res.score);
+                    },
+                    None => {
+                        println!("nothing to do");
+                    }
+                }
+            },
+            Some("rotate") => {
+                expect!(args.is_empty(), "rotate");
+
+                self.side = !self.side;
+            },
             Some(_) => println!("unknown command"),
         }
         Ok(())
@@ -142,14 +171,16 @@ impl<W: Write> Session<W> {
 }
 
 fn main() -> Result<(), Error> {
-    let board = Board::new(Side::White);
+    let board = Board::new();
     let stdout = io::stdout();
     let stdout = stdout.lock();
 
     let mut s = Session {
         out: stdout,
         board,
-        undo: None
+        side: Side::Black,
+        undo: None,
+        highlight: HashSet::new()
     };
 
     let mut editor = Editor::<()>::new();
@@ -162,6 +193,8 @@ fn main() -> Result<(), Error> {
             | Err(ReadlineError::Eof) => break,
             result => result?
         };
+
+        s.highlight.clear();
 
         s.command(&line)?;
     }

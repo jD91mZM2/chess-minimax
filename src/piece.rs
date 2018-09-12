@@ -6,7 +6,7 @@ use crate::{
 use std::fmt;
 
 /// A chess piece on the board, a kind of piece and what side it is on
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Piece {
     pub kind: PieceKind,
     pub side: Side
@@ -51,28 +51,28 @@ impl Piece {
     pub fn moves(&self) -> (StackVec<[Pos; 8]>, bool) {
         let mut vec = StackVec::new();
 
+        const ROOK_MOVES: [Pos; 4] = [
+            Pos(0, 1),
+            Pos(0, -1),
+            Pos(1, 0),
+            Pos(-1, 0)
+        ];
+
         fn rotate4(pos: Pos) -> [Pos; 4] {
-            let Pos(x, y) = pos;
-            [
-                Pos(x, y),
-                Pos(x, -y),
-                Pos(y, x),
-                Pos(y, -x),
-            ]
-        }
-        fn rotate8(pos: Pos) -> [Pos; 8] {
             let Pos(x, y) = pos;
             [
                 Pos(x, y),
                 Pos(x, -y),
                 Pos(-x, y),
                 Pos(-x, -y),
-
-                Pos(y, x),
-                Pos(y, -x),
-                Pos(-y, x),
-                Pos(-y, -x),
             ]
+        }
+        fn rotate8(pos: Pos) -> [Pos; 8] {
+            let Pos(x, y) = pos;
+            let mut all = [Pos::default(); 8];
+            all[0..4].copy_from_slice(&rotate4(Pos(x, y)));
+            all[4..8].copy_from_slice(&rotate4(Pos(x, y)));
+            all
         }
 
         let repeat = match (self.side, self.kind) {
@@ -90,14 +90,14 @@ impl Piece {
             ]); false },
             (_, PieceKind::Knight) => { vec.append(rotate8(Pos(1, 2))); false },
             (_, PieceKind::Bishop) => { vec.append(rotate4(Pos(1, 1))); true },
-            (_, PieceKind::Rook) => { vec.append(rotate4(Pos(1, 0))); true },
-            (_, PieceKind::Queen) => { vec.append({
+            (_, PieceKind::Rook) => { vec.append(ROOK_MOVES); true },
+            (_, PieceKind::Queen)
+            | (_, PieceKind::King) => { vec.append({
                 let mut all = [Pos::default(); 8];
-                all[0..4].copy_from_slice(&rotate4(Pos(1, 0)));
+                all[0..4].copy_from_slice(&ROOK_MOVES);
                 all[4..8].copy_from_slice(&rotate4(Pos(1, 1)));
                 all
-            }); true },
-            (_, PieceKind::King) => { vec.append(rotate4(Pos(1, 0))); false },
+            }); self.kind == PieceKind::Queen },
         };
         (vec, repeat)
     }
@@ -108,7 +108,7 @@ impl fmt::Display for Piece {
     }
 }
 /// A kind of chess piece
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PieceKind {
     Pawn,
     Knight,
@@ -116,4 +116,21 @@ pub enum PieceKind {
     Rook,
     Queen,
     King
+}
+impl PieceKind {
+    /// Return the piece worth, according to
+    /// https://en.wikipedia.org/wiki/Chess_piece_relative_value
+    /// Note: The king's worth returns 0, because the minimax algorithm handles
+    /// it separately.
+    pub fn worth(self) -> u8 {
+        match self {
+            PieceKind::Pawn => 1,
+            PieceKind::Knight
+            | PieceKind::Bishop => 3,
+            PieceKind::Rook => 5,
+            PieceKind::Queen => 9,
+
+            PieceKind::King => 0
+        }
+    }
 }

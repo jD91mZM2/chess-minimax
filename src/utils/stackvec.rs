@@ -44,10 +44,6 @@ impl<T: Array> StackVec<T> {
     pub fn new() -> Self {
         Self::default()
     }
-    /// Return the length of this container
-    pub fn len(&self) -> usize {
-        self.len
-    }
 
     fn ptr(&self) -> *const T::Item {
         &self.array as *const _ as *const T::Item
@@ -130,44 +126,43 @@ impl<'a, T: Array> IntoIterator for StackVec<T> {
     type Item = T::Item;
     type IntoIter = IntoIter<T>;
 
-    fn into_iter(mut self) -> Self::IntoIter {
-        let iter = IntoIter {
-            ptr: self.ptr_mut(),
-            len: self.len
-        };
-        mem::forget(self); // Don't call destructor
-        iter
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            inner: ManuallyDrop::new(self),
+            i: 0
+        }
     }
 }
 
 /// An owning iterator over a StackVec
 pub struct IntoIter<T: Array> {
-    ptr: *mut T::Item,
-    len: usize
+    inner: ManuallyDrop<StackVec<T>>,
+    i: usize
 }
 impl<T: Array> Iterator for IntoIter<T> {
     type Item = T::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.len == 0 {
+        if self.i >= self.inner.len {
             return None;
         }
 
+        assert!(self.i <= std::isize::MAX as usize);
         unsafe {
-            let item = ptr::read(self.ptr);
-            self.ptr = self.ptr.offset(1);
-            self.len -= 1;
+            let item = ptr::read(self.inner.ptr_mut().offset(self.i as isize));
+            self.i += 1;
             return Some(item);
         }
     }
 }
 impl<T: Array> Drop for IntoIter<T> {
     fn drop(&mut self) {
-        unsafe {
-            while self.len > 0 {
-                self.len -= 1;
-                ptr::drop_in_place(self.ptr);
-                self.ptr = self.ptr.offset(1);
+        assert!(self.i <= std::isize::MAX as usize);
+        assert!(self.inner.len <= std::isize::MAX as usize);
+
+        for i in self.i as isize..self.inner.len as isize {
+            unsafe {
+                ptr::drop_in_place(self.inner.ptr_mut().offset(i));
             }
         }
     }

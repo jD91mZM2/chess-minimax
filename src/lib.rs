@@ -3,11 +3,12 @@
 use std::fmt;
 
 pub mod board;
+pub mod minimax;
 pub mod piece;
 pub(crate) mod utils;
 
 /// A position on the board
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pos(pub i8, pub i8);
 impl Pos {
     /// Returns true if the position is actually within the boundaries of a board
@@ -20,9 +21,9 @@ impl Pos {
 macro_rules! impl_op {
     ($($trait:ident, $fn:ident, $op:tt, $trait_assign:ident, $fn_assign:ident, $op_assign:tt;)*) => {
         $(impl std::ops::$trait<Pos> for Pos {
-            type Output = Pos;
+            type Output = Self;
 
-            fn $fn(self, other: Pos) -> Self::Output {
+            fn $fn(self, other: Self) -> Self::Output {
                 let Pos(x1, y1) = self;
                 let Pos(x2, y2) = other;
                 Pos(
@@ -32,7 +33,7 @@ macro_rules! impl_op {
             }
         }
         impl std::ops::$trait_assign<Pos> for Pos {
-            fn $fn_assign(&mut self, other: Pos) {
+            fn $fn_assign(&mut self, other: Self) {
                 let Pos(ref mut x1, ref mut y1) = self;
                 let Pos(x2, y2) = other;
 
@@ -80,4 +81,14 @@ impl std::str::FromStr for Pos {
 pub enum Side {
     Black,
     White
+}
+impl std::ops::Not for Side {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Side::Black => Side::White,
+            Side::White => Side::Black
+        }
+    }
 }
