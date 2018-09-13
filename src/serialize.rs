@@ -32,7 +32,8 @@ pub fn deserialize_board<R: Read>(input: &mut R) -> io::Result<Board> {
         }
     }
     Ok(Board {
-        pieces
+        pieces,
+        en_passant: None // TODO!!!!
     })
 }
 

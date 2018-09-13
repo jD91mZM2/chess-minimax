@@ -6,13 +6,13 @@ use crate::{
 };
 use std::mem;
 
-pub type Change = StackVec<[Undo; 3]>;
+pub type Change = StackVec<[Undo; 4]>;
 
 /// Describes how to revert a change to the board. Used for undoing moves.
 #[derive(Clone, Debug)]
 pub enum Undo {
-    Set(Pos, Option<Piece>)
-    // TODO
+    Set(Pos, Option<Piece>),
+    EnPassant(Option<Pos>)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -24,10 +24,18 @@ pub struct CheckStatus {
 /// The width (and height, because square) of the board
 pub const WIDTH: i8 = 8;
 
+fn edge_offset(side: Side, y: i8) -> i8 {
+    match side {
+        Side::Black => y,
+        Side::White => (WIDTH - 1) - y
+    }
+}
+
 /// A typical chess board
 #[derive(Debug, Clone)]
 pub struct Board {
     pub(crate) pieces: [[Option<Piece>; WIDTH as usize]; WIDTH as usize],
+    pub(crate) en_passant: Option<Pos>
 }
 impl Default for Board {
     fn default() -> Self {
@@ -60,7 +68,8 @@ impl Default for Board {
 [None,        None,          None,          None,         None,        None,          None,          None],
 [white(Pawn), white(Pawn),   white(Pawn),   white(Pawn),  white(Pawn), white(Pawn),   white(Pawn),   white(Pawn)],
 [white(Rook), white(Knight), white(Bishop), white(Queen), white(King), white(Bishop), white(Knight), white(Rook)]
-            ]
+            ],
+            en_passant: None
         }
     }
 }
@@ -97,7 +106,7 @@ impl Board {
     /// Returns yes if the piece at `from` make the move `m`.
     /// Warning: This may return false positives if called on anything other than the results of `piece.moves()`!
     pub fn can_move(&self, from: Pos, m: Pos) -> bool {
-        let Pos(_from_x, from_y) = from;
+        let Pos(from_x, from_y) = from;
         let Pos(rel_x, rel_y) = m;
         let dest = from + m;
 
@@ -115,12 +124,12 @@ impl Board {
 
         match piece.kind {
             PieceKind::Pawn =>
-                // Capture diagonally
-                (rel_x.abs() == 1) == (self.get(dest).is_some())
+                // Capture diagonally, or en passant
+                ((rel_x.abs() == 1) == (self.get(dest).is_some())
+                    || (rel_x.abs() == 1 && self.en_passant == Some(Pos(from_x + rel_x, from_y))))
                 // Optionally jump twice if at starting position, but don't jump over a piece
                 && (rel_y.abs() != 2
-                    || (piece.side == Side::White && from_y == WIDTH-2 && self.get(from + Pos(0, rel_y / 2)).is_none())
-                    || (piece.side == Side::Black && from_y == 1 && self.get(from + Pos(0, rel_y / 2)).is_none())),
+                    || (from_y == edge_offset(piece.side, 1) && self.get(from + Pos(0, rel_y / 2)).is_none())),
             _ => true
         }
     }
@@ -149,22 +158,52 @@ impl Board {
     /// Move a piece, replacing whatever was already on `to`. Handles any logic
     /// like spawning a queen. Can be undone.
     pub fn move_(&mut self, from: Pos, to: Pos) -> Change {
+        let prev_en_passant = self.en_passant.take();
+
         let mut vec = StackVec::new();
 
-        let piece = mem::replace(self.get_mut(from), None);
+        let piece = self.get_mut(from).take();
         let old = mem::replace(self.get_mut(to), piece);
 
         vec.append([
             Undo::Set(from, piece),
             Undo::Set(to, old)
         ]);
+
+        if let Some(piece) = piece {
+            let Pos(_, from_y) = from;
+            let Pos(to_x, to_y) = to;
+            if piece.kind == PieceKind::Pawn {
+                let en_passant = Pos(to_x, from_y);
+                if to_y == edge_offset(!piece.side, 0) {
+                    // Pawn moved all the way to the other's edge, let's upgrade it!
+                    self.get_mut(to)
+                        .as_mut()
+                        .unwrap()
+                        .kind = PieceKind::Queen;
+                } else if from_y == edge_offset(piece.side, 1) && to_y == edge_offset(piece.side, 3) {
+                    // Did initial move, is subject to en passant
+                    self.en_passant = Some(to);
+                } else if prev_en_passant == Some(en_passant) {
+                    // Did en passant, kill victim
+                    let killed = self.get_mut(en_passant).take();
+                    vec.push(Undo::Set(en_passant, killed));
+                }
+            }
+
+            if prev_en_passant.is_some() || self.en_passant.is_some() {
+                vec.push(Undo::EnPassant(prev_en_passant));
+            }
+        }
+
         vec
     }
     /// Undo a move
     pub fn undo(&mut self, change: Change) {
         for undo in change {
             match undo {
-                Undo::Set(pos, piece) => *self.get_mut(pos) = piece
+                Undo::Set(pos, piece) => *self.get_mut(pos) = piece,
+                Undo::EnPassant(pos) => self.en_passant = pos
             }
         }
     }
