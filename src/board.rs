@@ -20,7 +20,7 @@ pub const WIDTH: i8 = 8;
 /// A typical chess board
 #[derive(Debug, Clone)]
 pub struct Board {
-    pieces: [[Option<Piece>; WIDTH as usize]; WIDTH as usize],
+    pub(crate) pieces: [[Option<Piece>; WIDTH as usize]; WIDTH as usize],
 }
 impl Default for Board {
     fn default() -> Self {
@@ -202,12 +202,7 @@ impl PieceIter {
                 return None;
             }
 
-            let Pos(ref mut x, ref mut y) = self.pos;
-            *x += 1;
-            if *x >= WIDTH {
-                *x = 0;
-                *y += 1;
-            }
+            self.pos = pos.next();
 
             if board.get(pos).map(|p| p.side == self.side).unwrap_or(false) {
                 break;

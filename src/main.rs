@@ -1,5 +1,6 @@
 use chess_minimax::{
     board::{Board, Change},
+    serialize,
     Pos,
     Side
 };
@@ -7,6 +8,7 @@ use failure::Error;
 use rustyline::{error::ReadlineError, Editor};
 use std::{
     collections::HashSet,
+    fs::{File, OpenOptions},
     io::{self, Write},
 };
 #[cfg(feature = "threads")]
@@ -15,7 +17,8 @@ use std::{
     thread
 };
 
-const DEPTH: u8 = 5;
+const BOARD_FILE: &'static str = "saved_board";
+const DEPTH: u8 = 6;
 
 struct Session<W: Write> {
     out: W,
@@ -171,7 +174,7 @@ impl<W: Write> Session<W> {
                         let exit = Arc::clone(&exit);
                         thread::spawn(move || -> Result<_, io::Error> {
                             let mut res = None;
-                            for i in DEPTH.. {
+                            for i in DEPTH - 3.. {
                                 writeln!(io::stdout(), "Trying depth {}...", i)?;
                                 if let Some(new) = board.minimax(i, !side, Some(&exit)) {
                                     res = Some((i, new));
@@ -212,6 +215,21 @@ impl<W: Write> Session<W> {
 
                 self.side = !self.side;
             },
+            Some("save") => {
+                expect!(args.is_empty(), "save");
+
+                let mut file = OpenOptions::new()
+                    .create_new(true)
+                    .write(true)
+                    .open(BOARD_FILE)?;
+                serialize::serialize_board(&mut file, &self.board)?;
+            },
+            Some("load") => {
+                expect!(args.is_empty(), "load");
+
+                let mut file = File::open(BOARD_FILE)?;
+                self.board = serialize::deserialize_board(&mut file)?;
+            },
             Some(_) => println!("unknown command"),
         }
         Ok(())
@@ -245,7 +263,9 @@ fn main() -> Result<(), Error> {
 
         s.highlight.clear();
 
-        s.command(&line)?;
+        if let Err(err) = s.command(&line) {
+            writeln!(s.out, "error: {}", err)?;
+        }
         editor.add_history_entry(line);
     }
     Ok(())

@@ -5,6 +5,7 @@ use std::fmt;
 pub mod board;
 pub mod minimax;
 pub mod piece;
+pub mod serialize;
 pub(crate) mod utils;
 
 /// A position on the board
@@ -16,6 +17,16 @@ impl Pos {
         let Pos(x, y) = self;
         x >= 0 && x < board::WIDTH
             && y >= 0 && y < board::WIDTH
+    }
+
+    /// Gets the next position on the board. A1 becomes B1, H1 becomes A2.
+    pub fn next(self) -> Self {
+        let Pos(x, y) = self;
+        if x + 1 < board::WIDTH {
+            Pos(x + 1, y)
+        } else {
+            Pos(0, y + 1)
+        }
     }
 }
 macro_rules! impl_op {
