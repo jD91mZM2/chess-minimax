@@ -18,7 +18,7 @@ pub enum Undo {
 pub const WIDTH: i8 = 8;
 
 /// A typical chess board
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Board {
     pieces: [[Option<Piece>; WIDTH as usize]; WIDTH as usize],
 }
@@ -37,22 +37,22 @@ impl Default for Board {
 
         Self {
             pieces: [
-[None,        None,          None,          None,         None,        None,          None,          None],
-[None,        None,          None,          None,         None,        None,          None,          None],
-[black(King), None,          None,          None,         None,        None,          None,          None],
-[None,        None,          None,          None,         white(Rook), None,          white(Rook),   None],
-[None,        None,          None,          None,         None,        None,          None,          None],
-[None,        None,          None,          None,         None,        None,          None,          None],
-[None,        None,          None,          None,         None,        None,          None,          None],
-[None,        None,          None,          None,         None,        None,          None,          None],
-//[black(Rook), black(Knight), black(Bishop), black(Queen), black(King), black(Bishop), black(Knight), black(Rook)],
-//[black(Pawn), black(Pawn),   black(Pawn),   black(Pawn),  black(Pawn), black(Pawn),   black(Pawn),   black(Pawn)],
+//[black(King), None,          None,          None,         None,        None,          None,          None],
+//[None,        None,          None,          None,         None,        None,          None,          None],
+//[None,        None,          None,          None,         None,        None,          None,          None],
+//[None,        None,          None,          None,         white(Rook), None,          white(Rook),   None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
-//[white(Pawn), white(Pawn),   white(Pawn),   white(Pawn),  white(Pawn), white(Pawn),   white(Pawn),   white(Pawn)],
-//[white(Rook), white(Knight), white(Bishop), white(Queen), white(King), white(Bishop), white(Knight), white(Rook)]
+[black(Rook), black(Knight), black(Bishop), black(Queen), black(King), black(Bishop), black(Knight), black(Rook)],
+[black(Pawn), black(Pawn),   black(Pawn),   black(Pawn),  black(Pawn), black(Pawn),   black(Pawn),   black(Pawn)],
+[None,        None,          None,          None,         None,        None,          None,          None],
+[None,        None,          None,          None,         None,        None,          None,          None],
+[None,        None,          None,          None,         None,        None,          None,          None],
+[None,        None,          None,          None,         None,        None,          None,          None],
+[white(Pawn), white(Pawn),   white(Pawn),   white(Pawn),  white(Pawn), white(Pawn),   white(Pawn),   white(Pawn)],
+[white(Rook), white(Knight), white(Bishop), white(Queen), white(King), white(Bishop), white(Knight), white(Rook)]
             ]
         }
     }

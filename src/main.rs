@@ -7,8 +7,15 @@ use failure::Error;
 use rustyline::{error::ReadlineError, Editor};
 use std::{
     collections::HashSet,
-    io::{self, Write}
+    io::{self, Write},
 };
+#[cfg(feature = "threads")]
+use std::{
+    sync::{atomic::{AtomicBool, Ordering}, Arc},
+    thread
+};
+
+const DEPTH: u8 = 5;
 
 struct Session<W: Write> {
     out: W,
@@ -148,15 +155,56 @@ impl<W: Write> Session<W> {
             Some("go") => {
                 expect!(args.is_empty(), "go");
 
-                match self.board.minimax(4, !self.side) {
-                    Some(res) => {
-                        self.board.move_(res.from, res.to);
-                        println!("move {} to {}", res.from, res.to);
-                        println!("final score: {}", res.score);
-                    },
-                    None => {
-                        println!("nothing to do");
+                #[cfg(not(feature = "threads"))]
+                let res = {
+                    self.board.minimax(DEPTH, !self.side, None)
+                };
+                #[cfg(feature = "threads")]
+                let res = {
+                    let exit = Arc::new(AtomicBool::new(false));
+
+                    println!("Calculating, press ENTER to stop:");
+
+                    let thread = {
+                        let side = self.side;
+                        let mut board = self.board.clone();
+                        let exit = Arc::clone(&exit);
+                        thread::spawn(move || -> Result<_, io::Error> {
+                            let mut res = None;
+                            for i in DEPTH.. {
+                                writeln!(io::stdout(), "Trying depth {}...", i)?;
+                                if let Some(new) = board.minimax(i, !side, Some(&exit)) {
+                                    res = Some((i, new));
+                                }
+                                if exit.load(Ordering::SeqCst) {
+                                    break;
+                                }
+                            }
+                            Ok(res)
+                        })
+                    };
+
+                    let mut buffer = String::new();
+                    io::stdin().read_line(&mut buffer)?;
+
+                    println!("Stopping...");
+                    exit.store(true, Ordering::SeqCst);
+
+                    match thread.join().unwrap()? {
+                        Some((depth, res)) => {
+                            println!("searched at depth {}", depth);
+                            Some(res)
+                        },
+                        None => {
+                            println!("nothing to do");
+                            None
+                        }
                     }
+                };
+                if let Some(res) = res {
+                    self.board.move_(res.from, res.to);
+                    println!("move {} to {}", res.from, res.to);
+                    println!("final score: {}", res.score);
                 }
             },
             Some("rotate") => {
@@ -173,6 +221,7 @@ impl<W: Write> Session<W> {
 fn main() -> Result<(), Error> {
     let board = Board::new();
     let stdout = io::stdout();
+    #[cfg(not(feature = "threads"))]
     let stdout = stdout.lock();
 
     let mut s = Session {
@@ -197,6 +246,7 @@ fn main() -> Result<(), Error> {
         s.highlight.clear();
 
         s.command(&line)?;
+        editor.add_history_entry(line);
     }
     Ok(())
 }

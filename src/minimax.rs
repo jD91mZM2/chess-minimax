@@ -4,6 +4,7 @@ use crate::{
     Pos,
     Side
 };
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// The result of a minimax session
 pub struct MinimaxResult {
@@ -13,17 +14,18 @@ pub struct MinimaxResult {
 }
 
 impl Board {
-    pub fn minimax(&mut self, depth: u8, player: Side) -> Option<MinimaxResult> {
+    pub fn minimax(&mut self, depth: u8, player: Side, exit: Option<&AtomicBool>) -> Option<MinimaxResult> {
         assert_ne!(depth, 0, "can't start minimax with 0 depth");
-        self.minimax_inner(depth, player, player, std::i32::MIN, std::i32::MAX)
+        self.minimax_inner(depth, player, player, exit, std::i16::MIN, std::i16::MAX)
     }
     fn minimax_inner(
         &mut self,
         depth: u8,
         original: Side,
         player: Side,
-        _alpha: i32,
-        _beta: i32
+        exit: Option<&AtomicBool>,
+        _alpha: i16,
+        _beta: i16,
     ) -> Option<MinimaxResult> {
         let maximizing = original == player;
         let mut best = None;
@@ -32,33 +34,39 @@ impl Board {
         while let Some(from) = pieces.next(&self) {
             let mut moves = self.moves_for(from);
             while let Some(to) = moves.next(&self) {
+                let game_over = if maximizing { 999 + depth as i16 } else { -999 - depth as i16 };
+
                 let score = if let Some(piece) = self.get(to).filter(|p| p.kind == PieceKind::King) {
-                    if original == piece.side {
-                        -999 - depth as i16
-                    } else {
-                        999 + depth as i16
-                    }
+                    assert!(player != piece.side);
+                    game_over
                 } else {
                     // Apply move
                     let undo = self.move_(from, to);
 
                     let score = if depth == 1 {
-                        self.score(original) - self.score(!original)
+                        self.score(original) - self.score(!original) +
+                            if maximizing {
+                                depth as i16
+                            } else {
+                                -(depth as i16)
+                            }
                     } else {
-                        self.minimax_inner(depth - 1, player, !player, std::i32::MIN, std::i32::MAX)
+                        self.minimax_inner(depth - 1, original, !player, exit, std::i16::MIN, std::i16::MAX)
                             .map(|s| s.score)
-                            .unwrap_or(999 + depth as i16)
+                            .unwrap_or(game_over)
                     };
 
                     // Undo move
                     self.undo(undo);
 
+                    if exit.map(|exit| exit.load(Ordering::SeqCst)).unwrap_or(false) {
+                        return None;
+                    }
+
                     score
                 };
 
-                //if best.as_ref().map(|best: &MinimaxResult| maximizing == (score > best.score)).unwrap_or(true) {
-                if (maximizing && best.as_ref().map(|best: &MinimaxResult| score > best.score).unwrap_or(true))
-                    || (!maximizing && best.as_ref().map(|best: &MinimaxResult| score < best.score).unwrap_or(true)){
+                if best.as_ref().map(|best: &MinimaxResult| maximizing == (score > best.score)).unwrap_or(true) {
                     best = Some(MinimaxResult {
                         score,
                         from,
