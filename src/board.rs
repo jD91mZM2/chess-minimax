@@ -1,17 +1,24 @@
 use crate::{
+    piece::{Piece, PieceKind},
+    utils::stackvec::StackVec,
     Pos,
     Side,
-    piece::{Piece, PieceKind},
-    utils::stackvec::StackVec
 };
 use std::mem;
 
 pub type Change = StackVec<[Undo; 3]>;
 
 /// Describes how to revert a change to the board. Used for undoing moves.
+#[derive(Clone, Debug)]
 pub enum Undo {
     Set(Pos, Option<Piece>)
     // TODO
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CheckStatus {
+    black: Option<Pos>,
+    white: Option<Pos>
 }
 
 /// The width (and height, because square) of the board
@@ -44,7 +51,7 @@ impl Default for Board {
 //[None,        None,          None,          None,         None,        None,          None,          None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
-//[None,        None,          None,          None,         None,        None,          None,          None],
+//[None,        None,          None,          None,         None,        None,          None,          white(King)],
 [black(Rook), black(Knight), black(Bishop), black(Queen), black(King), black(Bishop), black(Knight), black(Rook)],
 [black(Pawn), black(Pawn),   black(Pawn),   black(Pawn),  black(Pawn), black(Pawn),   black(Pawn),   black(Pawn)],
 [None,        None,          None,          None,         None,        None,          None,          None],
@@ -118,14 +125,14 @@ impl Board {
         }
     }
     /// Run the function `f` for each piece that belongs to `side`
-    pub fn pieces(&mut self, side: Side) -> PieceIter {
+    pub fn pieces(&self, side: Side) -> PieceIter {
         PieceIter {
             side,
             pos: Pos::default()
         }
     }
     /// Run the function `f` for each move that the piece at position `pos` can make
-    pub fn moves_for(&mut self, pos: Pos) -> MoveIter {
+    pub fn moves_for(&self, pos: Pos) -> MoveIter {
         let (moves, repeat) = match self.get(pos) {
             Some(piece) => piece.moves(),
             None => (StackVec::new(), false)
@@ -163,7 +170,7 @@ impl Board {
     }
 
     /// Calculate the total score for a certain side
-    pub fn score(&mut self, side: Side) -> i16 {
+    pub fn score(&self, side: Side) -> i16 {
         let mut score = 0;
         let mut pieces = self.pieces(side);
         while let Some(pos) = pieces.next(&self) {
@@ -171,6 +178,38 @@ impl Board {
             score += piece.kind.worth() as i16;
         }
         score
+    }
+
+    /// Return whatever piece is threatening the specified side's king, if any
+    pub fn check(&self, side: Side) -> Option<Pos> {
+        let mut pieces = self.pieces(!side);
+        while let Some(from) = pieces.next(self) {
+            let mut moves = self.moves_for(from);
+            while let Some(to) = moves.next(self) {
+                if self.get(to).map(|p| p.side == side && p.kind == PieceKind::King).unwrap_or(false) {
+                    return Some(from);
+                }
+            }
+        }
+
+        None
+    }
+    /// Returns true if the specified side cannot make a move that's not in check
+    pub fn is_checkmate(&mut self, side: Side) -> bool {
+        let mut pieces = self.pieces(side);
+        while let Some(from) = pieces.next(self) {
+            let mut moves = self.moves_for(from);
+            while let Some(to) = moves.next(self) {
+                let undo = self.move_(from, to);
+                let check = self.check(side);
+                self.undo(undo);
+
+                if check.is_none() {
+                    return false;
+                }
+            }
+        }
+        true
     }
 }
 impl<'a> IntoIterator for &'a Board {

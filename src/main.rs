@@ -1,5 +1,6 @@
 use chess_minimax::{
     board::{Board, Change},
+    piece::PieceKind,
     serialize,
     Pos,
     Side
@@ -24,10 +25,28 @@ struct Session<W: Write> {
     out: W,
     board: Board,
     side: Side,
-    undo: Option<Change>,
+    undo: Vec<Change>,
     highlight: HashSet<Pos>
 }
 impl<W: Write> Session<W> {
+    fn check_status(&mut self, side: Side) -> io::Result<()> {
+        use termion::style::*;
+        let side_str = match side {
+            Side::Black => "black",
+            Side::White => "white"
+        };
+        if self.board.iter()
+                .flat_map(|row| row.iter())
+                .filter_map(|piece| piece.as_ref())
+                .all(|p| p.kind != PieceKind::King || p.side != side) {
+            writeln!(self.out, "{}{} has no king{}", Italic, side_str, Reset)?;
+        } else if self.board.is_checkmate(side) {
+            writeln!(self.out, "{}{} is checkmated{}", Italic, side_str, Reset)?;
+        } else if let Some(pos) = self.board.check(side) {
+            writeln!(self.out, "{}{} is checked by {}{}", Italic, side_str, pos, Reset)?;
+        }
+        Ok(())
+    }
     fn draw(&mut self) -> io::Result<()> {
         use termion::{color::{self, *}, style::{self, *}};
         write!(self.out, "  {}{}", Fg(Red), Bold)?;
@@ -61,6 +80,9 @@ impl<W: Write> Session<W> {
             writeln!(self.out, "{}{}", Bg(color::Reset), Fg(color::Reset))?;
         }
         write!(self.out, "{}", style::Reset)?;
+
+        self.check_status(Side::Black)?;
+        self.check_status(Side::White)?;
         Ok(())
     }
     fn possible(&mut self, from: Pos) -> io::Result<()> {
@@ -125,10 +147,12 @@ impl<W: Write> Session<W> {
             Some("move") | Some("movef") => {
                 expect!(args.len() == 2, "move(f) <from> <to>");
 
+                let force = cmd == Some("movef");
+
                 let from = expect!(args[0].parse());
                 let to = expect!(args[1].parse());
 
-                if cmd == Some("move") {
+                if !force {
                     let mut possible = false;
                     let mut moves = self.board.moves_for(from);
                     while let Some(m) = moves.next(&self.board) {
@@ -139,12 +163,21 @@ impl<W: Write> Session<W> {
                     expect!(possible, "piece can't move there (hint: movef)");
                 }
 
-                self.undo = Some(self.board.move_(from, to));
+                let undo = self.board.move_(from, to);
+                if !force {
+                    if let Some(pos) = self.board.check(self.side) {
+                        self.board.undo(undo);
+                        self.highlight.insert(pos);
+                        println!("can't place yourself in check!");
+                        return Ok(());
+                    }
+                }
+                self.undo.push(undo);
             },
             Some("undo") => {
                 expect!(args.is_empty(), "undo");
 
-                match self.undo.take() {
+                match self.undo.pop() {
                     Some(change) => self.board.undo(change),
                     None => {
                         println!("no recent move to undo");
@@ -205,7 +238,8 @@ impl<W: Write> Session<W> {
                     }
                 };
                 if let Some(res) = res {
-                    self.board.move_(res.from, res.to);
+                    let undo = self.board.move_(res.from, res.to);
+                    self.undo.push(undo);
                     println!("move {} to {}", res.from, res.to);
                     println!("final score: {}", res.score);
                 }
@@ -246,7 +280,7 @@ fn main() -> Result<(), Error> {
         out: stdout,
         board,
         side: Side::Black,
-        undo: None,
+        undo: Vec::new(),
         highlight: HashSet::new()
     };
 
