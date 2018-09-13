@@ -24,14 +24,14 @@ impl Board {
         original: Side,
         player: Side,
         exit: Option<&AtomicBool>,
-        _alpha: i16,
-        _beta: i16,
+        mut alpha: i16,
+        mut beta: i16,
     ) -> Option<MinimaxResult> {
         let maximizing = original == player;
-        let mut best = None;
+        let mut best: Option<MinimaxResult> = None;
 
         let mut pieces = self.pieces(player);
-        while let Some(from) = pieces.next(&self) {
+        'outer: while let Some(from) = pieces.next(&self) {
             let mut moves = self.moves_for(from);
             while let Some(to) = moves.next(&self) {
                 let game_over = if maximizing { 999 + depth as i16 } else { -999 - depth as i16 };
@@ -44,14 +44,9 @@ impl Board {
                     let undo = self.move_(from, to);
 
                     let score = if depth == 1 {
-                        self.score(original) - self.score(!original) +
-                            if maximizing {
-                                depth as i16
-                            } else {
-                                -(depth as i16)
-                            }
+                        self.score(original) - self.score(!original)
                     } else {
-                        self.minimax_inner(depth - 1, original, !player, exit, std::i16::MIN, std::i16::MAX)
+                        self.minimax_inner(depth - 1, original, !player, exit, alpha, beta)
                             .map(|s| s.score)
                             .unwrap_or(game_over)
                     };
@@ -59,19 +54,37 @@ impl Board {
                     // Undo move
                     self.undo(undo);
 
-                    if exit.map(|exit| exit.load(Ordering::SeqCst)).unwrap_or(false) {
-                        return None;
-                    }
-
                     score
                 };
 
-                if best.as_ref().map(|best: &MinimaxResult| maximizing == (score > best.score)).unwrap_or(true) {
-                    best = Some(MinimaxResult {
-                        score,
-                        from,
-                        to
-                    });
+                if exit.map(|exit| exit.load(Ordering::SeqCst)).unwrap_or(false) {
+                    return None;
+                }
+
+                let this = Some(MinimaxResult {
+                    score,
+                    from,
+                    to
+                });
+                if maximizing && best.as_ref().map(|best| score > best.score).unwrap_or(true) {
+                    best = this;
+                    if score > alpha {
+                        // alpha holds upper half of possible scores
+                        alpha = score;
+                    }
+                } else if !maximizing && best.as_ref().map(|best| score < best.score).unwrap_or(true) {
+                    best = this;
+                    if score < beta {
+                        // beta holds lower half of possible scores
+                        beta = score;
+                    }
+                }
+                if alpha >= beta {
+                    // This node will not be chosen by the parent node, because
+                    // it has a worse value than a previous node.
+                    // If this is just as confusing to you as it is to me,
+                    // https://youtu.be/xBXHtz4Gbdo might be a good resource.
+                    break 'outer;
                 }
             }
         }
