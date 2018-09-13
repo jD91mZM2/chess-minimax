@@ -1,12 +1,24 @@
 use crate::{
     board::{self, Board},
     piece::{Piece, PieceKind},
+    Pos,
     Side
 };
 use std::io::{self, Read, Write};
 
+const HAS_EN_PASSANT: u8 = 1;
+
 /// Serialize a board to an I/O stream
 pub fn serialize_board<W: Write>(out: &mut W, board: &Board) -> io::Result<()> {
+    let mut flags = 0;
+    if board.en_passant.is_some() {
+        flags |= HAS_EN_PASSANT;
+    }
+    out.write_all(&[flags])?;
+    if let Some(en_passant) = board.en_passant {
+        out.write_all(&[serialize_pos(en_passant)])?;
+    }
+
     for row in board {
         for pieces in row.chunks(2) {
             let mut pieces_array = [None; 2];
@@ -19,6 +31,17 @@ pub fn serialize_board<W: Write>(out: &mut W, board: &Board) -> io::Result<()> {
 }
 /// Deserialize a board from an I/O stream
 pub fn deserialize_board<R: Read>(input: &mut R) -> io::Result<Board> {
+    let mut byte = [0];
+    input.read_exact(&mut byte)?;
+    let flags = byte[0];
+
+    let en_passant = if flags & HAS_EN_PASSANT == HAS_EN_PASSANT {
+        input.read_exact(&mut byte)?;
+        deserialize_pos(byte[0])
+    } else {
+        None
+    };
+
     let mut pieces = [[None; board::WIDTH as usize]; board::WIDTH as usize];
     for y in 0..board::WIDTH as usize {
         let mut bytes = [0; board::WIDTH as usize / 2];
@@ -33,8 +56,20 @@ pub fn deserialize_board<R: Read>(input: &mut R) -> io::Result<Board> {
     }
     Ok(Board {
         pieces,
-        en_passant: None // TODO!!!!
+        en_passant
     })
+}
+
+/// Serialize a position into a byte
+pub fn serialize_pos(pos: Pos) -> u8 {
+    assert!(pos.is_valid());
+    let Pos(x, y) = pos;
+    x as u8 + y as u8 * board::WIDTH as u8
+}
+/// Deserialize a byte into a position
+pub fn deserialize_pos(byte: u8) -> Option<Pos> {
+    Some(Pos(byte as i8 % board::WIDTH as i8, byte as i8 / board::WIDTH as i8))
+        .filter(|pos| pos.is_valid())
 }
 
 /// Serialize 2 pieces into one single byte
