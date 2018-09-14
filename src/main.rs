@@ -209,7 +209,7 @@ impl<W: Write> Session<W> {
                             let mut res = None;
                             for i in DEPTH - 3.. {
                                 writeln!(io::stdout(), "Trying depth {}...", i)?;
-                                if let Some(new) = board.minimax(i, !side, Some(&exit)) {
+                                if let Some(new) = board.minimax_parallel(i, !side, Some(&exit)) {
                                     res = Some((i, new));
                                 }
                                 if exit.load(Ordering::SeqCst) {
