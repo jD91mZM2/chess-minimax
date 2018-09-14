@@ -6,7 +6,7 @@ use crate::{
 use std::fmt;
 
 /// A chess piece on the board, a kind of piece and what side it is on
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Piece {
     pub kind: PieceKind,
     pub side: Side
@@ -48,7 +48,7 @@ impl Piece {
 
     /// All moves this piece can make.
     /// Note: Some moves may or may not be possible, depending on the position on the board.
-    pub fn moves(&self) -> (StackVec<[Pos; 8]>, bool) {
+    pub fn moves(&self) -> (StackVec<[Pos; 10]>, bool) {
         let mut vec = StackVec::new();
 
         const ROOK_MOVES: [Pos; 4] = [
@@ -90,12 +90,22 @@ impl Piece {
             (_, PieceKind::Bishop) => { vec.append(BISHOP_MOVES); true },
             (_, PieceKind::Rook) => { vec.append(ROOK_MOVES); true },
             (_, PieceKind::Queen)
-            | (_, PieceKind::King) => { vec.append({
-                let mut all = [Pos::default(); 8];
-                all[0..4].copy_from_slice(&ROOK_MOVES);
-                all[4..8].copy_from_slice(&BISHOP_MOVES);
-                all
-            }); self.kind == PieceKind::Queen },
+            | (_, PieceKind::King) => {
+                let mut moves = [Pos::default(); 8];
+                moves[0..4].copy_from_slice(&ROOK_MOVES);
+                moves[4..8].copy_from_slice(&BISHOP_MOVES);
+                vec.append(moves);
+
+                if self.kind == PieceKind::King {
+                    // Castling
+                    vec.append([
+                        Pos(2, 0),
+                        Pos(-2, 0),
+                    ]);
+                }
+
+                self.kind == PieceKind::Queen
+            },
         };
         (vec, repeat)
     }

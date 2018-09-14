@@ -6,19 +6,29 @@ use crate::{
 };
 use std::mem;
 
-pub type Change = StackVec<[Undo; 4]>;
+pub type Change = StackVec<[Undo; 6]>;
 
 /// Describes how to revert a change to the board. Used for undoing moves.
 #[derive(Clone, Debug)]
 pub enum Undo {
     Set(Pos, Option<Piece>),
-    EnPassant(Option<Pos>)
+    EnPassant(Option<Pos>),
+    Castling(Side, Castling)
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct CheckStatus {
-    black: Option<Pos>,
-    white: Option<Pos>
+/// Information about whether or not one side can do a castling
+#[derive(Clone, Copy, Debug)]
+pub struct Castling {
+    pub queenside: bool,
+    pub kingside: bool
+}
+impl Default for Castling {
+    fn default() -> Self {
+        Self {
+            queenside: true,
+            kingside: true
+        }
+    }
 }
 
 /// The width (and height, because square) of the board
@@ -35,7 +45,9 @@ fn edge_offset(side: Side, y: i8) -> i8 {
 #[derive(Debug, Clone)]
 pub struct Board {
     pub(crate) pieces: [[Option<Piece>; WIDTH as usize]; WIDTH as usize],
-    pub(crate) en_passant: Option<Pos>
+    pub(crate) en_passant: Option<Pos>,
+    pub(crate) castling_black: Castling,
+    pub(crate) castling_white: Castling
 }
 impl Default for Board {
     fn default() -> Self {
@@ -69,7 +81,9 @@ impl Default for Board {
 [white(Pawn), white(Pawn),   white(Pawn),   white(Pawn),  white(Pawn), white(Pawn),   white(Pawn),   white(Pawn)],
 [white(Rook), white(Knight), white(Bishop), white(Queen), white(King), white(Bishop), white(Knight), white(Rook)]
             ],
-            en_passant: None
+            en_passant: None,
+            castling_black: Castling::default(),
+            castling_white: Castling::default()
         }
     }
 }
@@ -79,11 +93,11 @@ impl Board {
         Self::default()
     }
     /// Get a reference to the piece at the requested position
-    pub fn get(&self, pos: Pos) -> Option<&Piece> {
+    pub fn get(&self, pos: Pos) -> Option<Piece> {
         assert!(pos.is_valid());
 
         let Pos(x, y) = pos;
-        self.pieces[y as usize][x as usize].as_ref()
+        self.pieces[y as usize][x as usize]
     }
     /// Get a mutable reference to the piece at the requested position
     pub fn get_mut(&mut self, pos: Pos) -> &mut Option<Piece> {
@@ -102,10 +116,17 @@ impl Board {
         self.pieces.iter()
     }
 
+    fn castling(&mut self, side: Side) -> &mut Castling {
+        match side {
+            Side::Black => &mut self.castling_black,
+            Side::White => &mut self.castling_white
+        }
+    }
+
     /// Does extra validation for a move.
     /// Returns yes if the piece at `from` make the move `m`.
     /// Warning: This may return false positives if called on anything other than the results of `piece.moves()`!
-    pub fn can_move(&self, from: Pos, m: Pos) -> bool {
+    pub fn can_move(&mut self, from: Pos, m: Pos) -> bool {
         let Pos(from_x, from_y) = from;
         let Pos(rel_x, rel_y) = m;
         let dest = from + m;
@@ -130,6 +151,41 @@ impl Board {
                 // Optionally jump twice if at starting position, but don't jump over a piece
                 && (rel_y.abs() != 2
                     || (from_y == edge_offset(piece.side, 1) && self.get(from + Pos(0, rel_y / 2)).is_none())),
+            PieceKind::King => {
+                if rel_x.abs() != 2 {
+                    return true;
+                }
+                // Castling
+                let row = edge_offset(piece.side, 0);
+                if from_y != row {
+                    return false;
+                }
+                let empty = if rel_x < 0 {
+                    self.castling(piece.side).queenside
+                        && self.get(Pos(0, row)) == Some(Piece { kind: PieceKind::Rook, side: piece.side })
+                        && self.get(Pos(1, row)).is_none()
+                        && self.get(Pos(2, row)).is_none()
+                        && self.get(Pos(3, row)).is_none()
+                } else {
+                    self.castling(piece.side).kingside
+                        && self.get(Pos(WIDTH-1, row)) == Some(Piece { kind: PieceKind::Rook, side: piece.side })
+                        && self.get(Pos(WIDTH-2, row)).is_none()
+                        && self.get(Pos(WIDTH-3, row)).is_none()
+                };
+                if !empty || self.check(piece.side).is_some() {
+                    return false;
+                }
+                for i in 0..2 {
+                    let pos = from + Pos(rel_x / (2-i), 0);
+                    let undo = self.move_(from, pos);
+                    let check = self.check(piece.side).is_some();
+                    self.undo(undo);
+                    if check {
+                        return false;
+                    }
+                }
+                true
+            },
             _ => true
         }
     }
@@ -171,24 +227,84 @@ impl Board {
         ]);
 
         if let Some(piece) = piece {
-            let Pos(_, from_y) = from;
+            let Pos(from_x, from_y) = from;
             let Pos(to_x, to_y) = to;
-            if piece.kind == PieceKind::Pawn {
-                let en_passant = Pos(to_x, from_y);
-                if to_y == edge_offset(!piece.side, 0) {
-                    // Pawn moved all the way to the other's edge, let's upgrade it!
-                    self.get_mut(to)
-                        .as_mut()
-                        .unwrap()
-                        .kind = PieceKind::Queen;
-                } else if from_y == edge_offset(piece.side, 1) && to_y == edge_offset(piece.side, 3) {
-                    // Did initial move, is subject to en passant
-                    self.en_passant = Some(to);
-                } else if prev_en_passant == Some(en_passant) {
-                    // Did en passant, kill victim
-                    let killed = self.get_mut(en_passant).take();
-                    vec.push(Undo::Set(en_passant, killed));
-                }
+            match piece.kind {
+                PieceKind::Pawn => {
+                    let en_passant = Pos(to_x, from_y);
+                    if to_y == edge_offset(!piece.side, 0) {
+                        // Pawn moved all the way to the other's edge, let's upgrade it!
+                        self.get_mut(to)
+                            .as_mut()
+                            .unwrap()
+                            .kind = PieceKind::Queen;
+                    } else if from_y == edge_offset(piece.side, 1) && to_y == edge_offset(piece.side, 3) {
+                        // Did initial move, is subject to en passant
+                        self.en_passant = Some(to);
+                    } else if prev_en_passant == Some(en_passant) {
+                        // Did en passant, kill victim
+                        let killed = self.get_mut(en_passant).take();
+                        vec.push(Undo::Set(en_passant, killed));
+                    }
+                },
+                PieceKind::Rook => {
+                    // Can no longer do a castling
+                    let row = edge_offset(piece.side, 0);
+                    let castling = self.castling(piece.side);
+
+                    if from == Pos(0, row) {
+                        if castling.queenside {
+                            vec.push(Undo::Castling(piece.side, *castling));
+                            castling.queenside = false;
+                        }
+                    } else if from == Pos(WIDTH-1, row) {
+                        if castling.kingside {
+                            vec.push(Undo::Castling(piece.side, *castling));
+                            castling.kingside = false;
+                        }
+                    }
+                },
+                PieceKind::King => {
+                    let castling = *self.castling(piece.side);
+
+                    // Was this a castling?
+                    let row = edge_offset(piece.side, 0);
+
+                    let positions = if to_x - from_x == -2 && castling.queenside {
+                        Some((
+                            Pos(0, row),
+                            Pos(to_x + 1, row)
+                        ))
+                    } else if to_x - from_x == 2 && castling.kingside {
+                        Some((
+                            Pos(WIDTH-1, row),
+                            Pos(to_x - 1, row)
+                        ))
+                    } else {
+                        None
+                    };
+                    if let Some((rook_from, rook_to)) = positions {
+                        let piece = self.get_mut(rook_from).take();
+                        *self.get_mut(rook_to) = piece;
+
+                        vec.append([
+                            Undo::Set(rook_from, piece),
+                            Undo::Set(rook_to, None)
+                        ]);
+                    }
+
+                    // You can no longer do a castling
+                    if castling.kingside || castling.queenside {
+                        let castling = self.castling(piece.side); // can't use mutable reference above
+
+                        vec.push(Undo::Castling(piece.side, *castling));
+                        *castling = Castling {
+                            queenside: false,
+                            kingside: false
+                        };
+                    }
+                },
+                _ => ()
             }
 
             if prev_en_passant.is_some() || self.en_passant.is_some() {
@@ -203,7 +319,8 @@ impl Board {
         for undo in change {
             match undo {
                 Undo::Set(pos, piece) => *self.get_mut(pos) = piece,
-                Undo::EnPassant(pos) => self.en_passant = pos
+                Undo::EnPassant(pos) => self.en_passant = pos,
+                Undo::Castling(side, castling) => *self.castling(side) = castling
             }
         }
     }
@@ -220,12 +337,12 @@ impl Board {
     }
 
     /// Return whatever piece is threatening the specified side's king, if any
-    pub fn check(&self, side: Side) -> Option<Pos> {
+    pub fn check(&mut self, side: Side) -> Option<Pos> {
         let mut pieces = self.pieces(!side);
         while let Some(from) = pieces.next(self) {
             let mut moves = self.moves_for(from);
             while let Some(to) = moves.next(self) {
-                if self.get(to).map(|p| p.side == side && p.kind == PieceKind::King).unwrap_or(false) {
+                if self.get(to) == Some(Piece { kind: PieceKind::King, side }) {
                     return Some(from);
                 }
             }
@@ -297,12 +414,12 @@ pub struct MoveIter {
     start: Pos,
     repeat: bool,
     repeat_cursor: Option<(Pos, Pos)>,
-    moves: StackVec<[Pos; 8]>,
+    moves: StackVec<[Pos; 10]>,
     i: usize
 }
 impl MoveIter {
     /// Gets the next destination for a move in the "iterator"
-    pub fn next(&mut self, board: &Board) -> Option<Pos> {
+    pub fn next(&mut self, board: &mut Board) -> Option<Pos> {
         if let Some((velocity, ref mut m)) = self.repeat_cursor {
             *m += velocity;
             if board.can_move(self.start, *m) {

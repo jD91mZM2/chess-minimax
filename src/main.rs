@@ -89,7 +89,7 @@ impl<W: Write> Session<W> {
         write!(self.out, "{}: ", from)?;
         let mut first = true;
         let mut moves = self.board.moves_for(from);
-        while let Some(to) = moves.next(&self.board) {
+        while let Some(to) = moves.next(&mut self.board) {
             self.highlight.insert(to);
             if !first {
                 write!(self.out, ", ")?;
@@ -155,7 +155,7 @@ impl<W: Write> Session<W> {
                 if !force {
                     let mut possible = false;
                     let mut moves = self.board.moves_for(from);
-                    while let Some(m) = moves.next(&self.board) {
+                    while let Some(m) = moves.next(&mut self.board) {
                         if m == to {
                             possible = true;
                         }

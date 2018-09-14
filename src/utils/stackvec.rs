@@ -23,7 +23,7 @@ macro_rules! impl_array {
         })*
     }
 }
-impl_array!(1, 2, 3, 4, 5, 6, 7, 8);
+impl_array!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
 /// A stack allocated vector-like container
 #[derive(Clone)]

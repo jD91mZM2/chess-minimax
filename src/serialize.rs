@@ -1,5 +1,5 @@
 use crate::{
-    board::{self, Board},
+    board::{self, Board, Castling},
     piece::{Piece, PieceKind},
     Pos,
     Side
@@ -7,6 +7,10 @@ use crate::{
 use std::io::{self, Read, Write};
 
 const HAS_EN_PASSANT: u8 = 1;
+const BLACK_CASTLING_QUEENSIDE: u8 = 1 << 1;
+const BLACK_CASTLING_KINGSIDE:  u8 = 1 << 2;
+const WHITE_CASTLING_QUEENSIDE: u8 = 1 << 3;
+const WHITE_CASTLING_KINGSIDE:  u8 = 1 << 4;
 
 /// Serialize a board to an I/O stream
 pub fn serialize_board<W: Write>(out: &mut W, board: &Board) -> io::Result<()> {
@@ -14,7 +18,12 @@ pub fn serialize_board<W: Write>(out: &mut W, board: &Board) -> io::Result<()> {
     if board.en_passant.is_some() {
         flags |= HAS_EN_PASSANT;
     }
+    if board.castling_black.queenside { flags |= BLACK_CASTLING_QUEENSIDE; }
+    if board.castling_black.kingside { flags |= BLACK_CASTLING_KINGSIDE; }
+    if board.castling_white.queenside { flags |= WHITE_CASTLING_QUEENSIDE; }
+    if board.castling_white.kingside { flags |= WHITE_CASTLING_KINGSIDE; }
     out.write_all(&[flags])?;
+
     if let Some(en_passant) = board.en_passant {
         out.write_all(&[serialize_pos(en_passant)])?;
     }
@@ -56,7 +65,15 @@ pub fn deserialize_board<R: Read>(input: &mut R) -> io::Result<Board> {
     }
     Ok(Board {
         pieces,
-        en_passant
+        en_passant,
+        castling_black: Castling {
+            queenside: flags & BLACK_CASTLING_QUEENSIDE == BLACK_CASTLING_QUEENSIDE,
+            kingside:  flags & BLACK_CASTLING_KINGSIDE  == BLACK_CASTLING_KINGSIDE
+        },
+        castling_white: Castling {
+            queenside: flags & WHITE_CASTLING_QUEENSIDE == WHITE_CASTLING_QUEENSIDE,
+            kingside:  flags & WHITE_CASTLING_KINGSIDE  == WHITE_CASTLING_KINGSIDE
+        }
     })
 }
 

@@ -31,9 +31,9 @@ impl Board {
         let mut best: Option<MinimaxResult> = None;
 
         let mut pieces = self.pieces(player);
-        'outer: while let Some(from) = pieces.next(&self) {
+        'outer: while let Some(from) = pieces.next(self) {
             let mut moves = self.moves_for(from);
-            while let Some(to) = moves.next(&self) {
+            while let Some(to) = moves.next(self) {
                 let game_over = if maximizing { 999 + depth as i16 } else { -999 - depth as i16 };
 
                 let score = if let Some(piece) = self.get(to).filter(|p| p.kind == PieceKind::King) {
