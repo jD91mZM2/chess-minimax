@@ -40,6 +40,11 @@ fn edge_offset(side: Side, y: i8) -> i8 {
         Side::White => (WIDTH - 1) - y
     }
 }
+fn is_castling(piece: Option<Piece>, m: Pos) -> bool {
+    let Pos(rel_x, _) = m;
+    piece.map(|p| p.kind == PieceKind::King).unwrap_or(false)
+        && rel_x.abs() == 2
+}
 
 /// A typical chess board
 #[derive(Debug, Clone)]
@@ -196,17 +201,27 @@ impl Board {
             pos: Pos::default()
         }
     }
-    /// Run the function `f` for each move that the piece at position `pos` can make
-    pub fn moves_for(&self, pos: Pos) -> MoveIter {
+    /// Run the function `f` for each move that the piece at position `pos` can make.
+    pub fn moves_for(&self, pos: Pos) -> MoveIter<impl FnMut(Pos) -> bool> {
+        self.moves_for_filter(pos, |_| true)
+    }
+    /// Run the function `f` for each move that the piece at position `pos` can make.
+    /// Allows filtering moves *before* they are validated.
+    pub fn moves_for_filter<F>(&self, pos: Pos, filter: F) -> MoveIter<F>
+        where F: FnMut(Pos) -> bool
+    {
         let (moves, repeat) = match self.get(pos) {
             Some(piece) => piece.moves(),
             None => (StackVec::new(), false)
         };
         MoveIter {
             start: pos,
-            repeat,
-            repeat_cursor: None,
+            filter,
+
             moves,
+            repeat,
+
+            repeat_cursor: None,
             i: 0
         }
     }
@@ -340,7 +355,12 @@ impl Board {
     pub fn check(&mut self, side: Side) -> Option<Pos> {
         let mut pieces = self.pieces(!side);
         while let Some(from) = pieces.next(self) {
-            let mut moves = self.moves_for(from);
+            let piece = self.get(from);
+
+            // Prevent infinite loop:
+            // Castling detects if in check, check detects if can do castling
+            let mut moves = self.moves_for_filter(from, |m| !is_castling(piece, m));
+
             while let Some(to) = moves.next(self) {
                 if self.get(to) == Some(Piece { kind: PieceKind::King, side }) {
                     return Some(from);
@@ -410,14 +430,21 @@ impl PieceIter {
 /// While `MoveIter` doesn't actually implement the `Iterator` trait, it does
 /// let you iterate moves using the `next` function
 #[derive(Debug, Clone)]
-pub struct MoveIter {
+pub struct MoveIter<F>
+    where F: FnMut(Pos) -> bool
+{
     start: Pos,
-    repeat: bool,
-    repeat_cursor: Option<(Pos, Pos)>,
+    filter: F,
+
     moves: StackVec<[Pos; 10]>,
+    repeat: bool,
+
+    repeat_cursor: Option<(Pos, Pos)>,
     i: usize
 }
-impl MoveIter {
+impl<F> MoveIter<F>
+    where F: FnMut(Pos) -> bool
+{
     /// Gets the next destination for a move in the "iterator"
     pub fn next(&mut self, board: &mut Board) -> Option<Pos> {
         if let Some((velocity, ref mut m)) = self.repeat_cursor {
@@ -434,7 +461,7 @@ impl MoveIter {
         }
         while let Some(&m) = self.moves.get(self.i) {
             self.i += 1;
-            if board.can_move(self.start, m) {
+            if (self.filter)(m) && board.can_move(self.start, m) {
                 let target = self.start + m;
                 if self.repeat && board.get(target).is_none() {
                     self.repeat_cursor = Some((m, m));
