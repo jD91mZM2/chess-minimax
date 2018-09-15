@@ -69,14 +69,14 @@ impl Default for Board {
 
         Self {
             pieces: [
-//[black(King), None,          None,          None,         None,        None,          None,          None],
+//[white(King), None,          None,          None,         None,        None,          None,          None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
-//[None,        None,          None,          None,         white(Rook), None,          white(Rook),   None],
+//[None,        None,          None,          None,         black(Rook), None,          black(Rook),   None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
 //[None,        None,          None,          None,         None,        None,          None,          None],
-//[None,        None,          None,          None,         None,        None,          None,          white(King)],
+//[None,        None,          None,          None,         None,        None,          None,          black(King)],
 [black(Rook), black(Knight), black(Bishop), black(Queen), black(King), black(Bishop), black(Knight), black(Rook)],
 [black(Pawn), black(Pawn),   black(Pawn),   black(Pawn),  black(Pawn), black(Pawn),   black(Pawn),   black(Pawn)],
 [None,        None,          None,          None,         None,        None,          None,          None],

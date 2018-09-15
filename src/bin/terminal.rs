@@ -19,7 +19,7 @@ use std::{
 };
 
 const BOARD_FILE: &'static str = "saved_board";
-const DEPTH: u8 = 6;
+const DEPTH: u8 = 7;
 
 struct Session<W: Write> {
     out: W,
@@ -158,6 +158,7 @@ impl<W: Write> Session<W> {
                     while let Some(m) = moves.next(&mut self.board) {
                         if m == to {
                             possible = true;
+                            break;
                         }
                     }
                     expect!(possible, "piece can't move there (hint: movef)");
