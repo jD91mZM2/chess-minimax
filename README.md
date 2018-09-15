@@ -26,7 +26,7 @@ Alternatively, you can disable the "Trying depth X..." messages and just use a
 predetermined depth with
 
 ```
-cargo run --features terminal-min-bin --bin terminal --release
+cargo run --features terminal-bin-min --bin terminal --release
 ```
 
 *The main reason I made threads optional is because of plans for an eventual
