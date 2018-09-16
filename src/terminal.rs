@@ -90,8 +90,23 @@ impl<W: Write> Session<W> {
             writeln!(self.out, "{}", RESET)?;
         }
 
+        writeln!(self.out)?;
+
         self.check_status(Side::Black)?;
         self.check_status(Side::White)?;
+
+        writeln!(self.out, "{}Possible commands: \
+            all, \
+            go, \
+            load, \
+            move(f), \
+            possible, \
+            rotate, \
+            save, \
+            score, \
+            undo\
+            {}", ITALIC, RESET);
+
         Ok(())
     }
     pub fn possible(&mut self, from: Pos) -> io::Result<()> {
