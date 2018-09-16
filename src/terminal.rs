@@ -220,7 +220,7 @@ impl<W: Write> Session<W> {
 
                 #[cfg(not(feature = "terminal-bin"))]
                 let res = {
-                    self.board.minimax(DEPTH, !self.side, None)
+                    self.board.minimax(DEPTH, self.side, None)
                 };
                 #[cfg(feature = "terminal-bin")]
                 let res = {
@@ -236,7 +236,7 @@ impl<W: Write> Session<W> {
                             let mut res = None;
                             for i in DEPTH - 3.. {
                                 writeln!(io::stdout(), "Trying depth {}...", i)?;
-                                if let Some(new) = board.minimax(i, !side, Some(&exit)) {
+                                if let Some(new) = board.minimax(i, side, Some(&exit)) {
                                     res = Some((i, new));
                                 }
                                 if exit.load(Ordering::SeqCst) {
