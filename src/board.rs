@@ -256,7 +256,7 @@ impl Board {
                     } else if from_y == edge_offset(piece.side, 1) && to_y == edge_offset(piece.side, 3) {
                         // Did initial move, is subject to en passant
                         self.en_passant = Some(to);
-                    } else if prev_en_passant == Some(en_passant) {
+                    } else if from_x != to_x && prev_en_passant == Some(en_passant) {
                         // Did en passant, kill victim
                         let killed = self.get_mut(en_passant).take();
                         vec.push(Undo::Set(en_passant, killed));
