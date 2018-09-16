@@ -1,7 +1,7 @@
+use arrayvec::ArrayVec;
 use crate::{
     Pos,
-    Side,
-    utils::stackvec::StackVec
+    Side
 };
 use std::fmt;
 
@@ -48,8 +48,8 @@ impl Piece {
 
     /// All moves this piece can make.
     /// Note: Some moves may or may not be possible, depending on the position on the board.
-    pub fn moves(&self) -> (StackVec<[Pos; 10]>, bool) {
-        let mut vec = StackVec::new();
+    pub fn moves(&self) -> (ArrayVec<[Pos; 10]>, bool) {
+        let mut vec = ArrayVec::new();
 
         const ROOK_MOVES: [Pos; 4] = [
             Pos(0, 1),
@@ -65,19 +65,19 @@ impl Piece {
         ];
 
         let repeat = match (self.side, self.kind) {
-            (Side::Black, PieceKind::Pawn) => { vec.append([
+            (Side::Black, PieceKind::Pawn) => { vec.extend(ArrayVec::from([
                 Pos(0, 1),
                 Pos(0, 2),
                 Pos(1, 1),
                 Pos(-1, 1)
-            ]); false },
-            (Side::White, PieceKind::Pawn) => { vec.append([
+            ])); false },
+            (Side::White, PieceKind::Pawn) => { vec.extend(ArrayVec::from([
                 Pos(0, -1),
                 Pos(0, -2),
                 Pos(1, -1),
                 Pos(-1, -1)
-            ]); false },
-            (_, PieceKind::Knight) => { vec.append([
+            ])); false },
+            (_, PieceKind::Knight) => { vec.extend(ArrayVec::from([
                 Pos(1, 2),
                 Pos(1, -2),
                 Pos(-1, 2),
@@ -86,22 +86,22 @@ impl Piece {
                 Pos(2, -1),
                 Pos(-2, 1),
                 Pos(-2, -1)
-            ]); false },
-            (_, PieceKind::Bishop) => { vec.append(BISHOP_MOVES); true },
-            (_, PieceKind::Rook) => { vec.append(ROOK_MOVES); true },
+            ])); false },
+            (_, PieceKind::Bishop) => { vec.extend(BISHOP_MOVES.iter().cloned()); true },
+            (_, PieceKind::Rook) => { vec.extend(ROOK_MOVES.iter().cloned()); true },
             (_, PieceKind::Queen)
             | (_, PieceKind::King) => {
                 let mut moves = [Pos::default(); 8];
                 moves[0..4].copy_from_slice(&ROOK_MOVES);
                 moves[4..8].copy_from_slice(&BISHOP_MOVES);
-                vec.append(moves);
+                vec.extend(ArrayVec::from(moves));
 
                 if self.kind == PieceKind::King {
                     // Castling
-                    vec.append([
+                    vec.extend(ArrayVec::from([
                         Pos(2, 0),
                         Pos(-2, 0),
-                    ]);
+                    ]));
                 }
 
                 self.kind == PieceKind::Queen

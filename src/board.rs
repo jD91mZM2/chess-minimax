@@ -1,12 +1,12 @@
+use arrayvec::ArrayVec;
 use crate::{
     piece::{Piece, PieceKind},
-    utils::stackvec::StackVec,
     Pos,
     Side,
 };
 use std::mem;
 
-pub type Change = StackVec<[Undo; 6]>;
+pub type Change = ArrayVec<[Undo; 6]>;
 
 /// Describes how to revert a change to the board. Used for undoing moves.
 #[derive(Clone, Debug)]
@@ -212,7 +212,7 @@ impl Board {
     {
         let (moves, repeat) = match self.get(pos) {
             Some(piece) => piece.moves(),
-            None => (StackVec::new(), false)
+            None => (ArrayVec::new(), false)
         };
         MoveIter {
             start: pos,
@@ -231,15 +231,15 @@ impl Board {
     pub fn move_(&mut self, from: Pos, to: Pos) -> Change {
         let prev_en_passant = self.en_passant.take();
 
-        let mut vec = StackVec::new();
+        let mut vec = ArrayVec::new();
 
         let piece = self.get_mut(from).take();
         let old = mem::replace(self.get_mut(to), piece);
 
-        vec.append([
+        vec.extend(ArrayVec::from([
             Undo::Set(from, piece),
             Undo::Set(to, old)
-        ]);
+        ]));
 
         if let Some(piece) = piece {
             let Pos(from_x, from_y) = from;
@@ -302,10 +302,10 @@ impl Board {
                         let piece = self.get_mut(rook_from).take();
                         *self.get_mut(rook_to) = piece;
 
-                        vec.append([
+                        vec.extend(ArrayVec::from([
                             Undo::Set(rook_from, piece),
                             Undo::Set(rook_to, None)
-                        ]);
+                        ]));
                     }
 
                     // You can no longer do a castling
@@ -436,7 +436,7 @@ pub struct MoveIter<F>
     start: Pos,
     filter: F,
 
-    moves: StackVec<[Pos; 10]>,
+    moves: ArrayVec<[Pos; 10]>,
     repeat: bool,
 
     repeat_cursor: Option<(Pos, Pos)>,

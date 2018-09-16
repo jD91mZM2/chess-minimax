@@ -6,7 +6,6 @@ pub mod board;
 pub mod minimax;
 pub mod piece;
 pub mod serialize;
-pub(crate) mod utils;
 
 // Not really a part of the library, just need this for sharing interface with
 // WASM and binary.
