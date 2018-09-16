@@ -14,9 +14,8 @@ gdk-pixbuf = { version = "0.5.0", optional = true }
 gtk = { version = "0.5.0", optional = true }
 
 [features]
-threads = []
-terminal-bin-min = ["rustyline", "termion"]
-terminal-bin = ["terminal-bin-min", "threads"]
+terminal = []
+terminal-bin = ["terminal", "rustyline"]
 gtk-bin = ["gdk", "gdk-pixbuf", "gtk"]
 
 [[bin]]

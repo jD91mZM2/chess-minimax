@@ -8,6 +8,11 @@ pub mod piece;
 pub mod serialize;
 pub(crate) mod utils;
 
+// Not really a part of the library, just need this for sharing interface with
+// WASM and binary.
+#[cfg(feature = "terminal")]
+pub mod terminal;
+
 /// A position on the board
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pos(pub i8, pub i8);

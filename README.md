@@ -22,16 +22,9 @@ To get the terminal front-end, use
 cargo run --features terminal-bin --bin terminal --release
 ```
 
-Alternatively, you can disable the "Trying depth X..." messages and just use a
-predetermined depth with
-
-```
-cargo run --features terminal-bin-min --bin terminal --release
-```
-
-*The main reason I made threads optional is because of plans for an eventual
-WASM front-end. There is really no reason to not use threads, it doesn't even
-require any new dependencies.*
+You can also play against the terminal interface *on the web*
+[here](https://jd91mzm2.github.io/). Press the "play chess" button, and off you
+go!
 
 ## GUI (GTK+)
 
