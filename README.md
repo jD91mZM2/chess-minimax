@@ -38,3 +38,13 @@ automatically makes a move after you've made yours.
 ```
 cargo run --features gtk-bin --bin gtk --release
 ```
+
+## WebAssembly
+
+Both the terminal version and a completely new chessboard.js version are
+playable without downloading anything, from my site. Links:
+
+ - [Terminal version](https://jd91mzm2.github.io/) (press "play chess")
+ - [chessboard.js version](https://jd91mzm2.github.io/chess.html)
+
+[Source Code](https://gitlab.com/jD91mZM2/jD91mZM2.github.io)
