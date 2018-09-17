@@ -17,7 +17,7 @@ use std::{
 };
 
 const BOARD_FILE: &'static str = "saved_board";
-const DEPTH: u8 = 7;
+const DEPTH: u8 = 5;
 
 // Not using termion because I REALLY want to be able to use this front-end in
 // WASM.

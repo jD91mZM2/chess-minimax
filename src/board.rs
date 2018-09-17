@@ -340,17 +340,6 @@ impl Board {
         }
     }
 
-    /// Calculate the total score for a certain side
-    pub fn score(&self, side: Side) -> i16 {
-        let mut score = 0;
-        let mut pieces = self.pieces(side);
-        while let Some(pos) = pieces.next(&self) {
-            let piece = self.get(pos).unwrap();
-            score += piece.kind.worth() as i16;
-        }
-        score
-    }
-
     /// Return whatever piece is threatening the specified side's king, if any
     pub fn check(&mut self, side: Side) -> Option<Pos> {
         let mut pieces = self.pieces(!side);
