@@ -44,11 +44,12 @@ use std::{
         mpsc,
         Arc
     },
-    thread
+    thread,
+    time::{Duration, Instant}
 };
 
 const ICON_SIZE: i32 = 60;
-const DEPTH: u8 = 5;
+const TIMEOUT: u64 = 3;
 const SIDE_PLAYER: Side = Side::White;
 
 struct Data {
@@ -139,13 +140,23 @@ fn main() {
         let exit = Arc::clone(&exit);
         thread::spawn(move || {
             for mut board in rx_move {
-                let result = board.minimax(DEPTH, !SIDE_PLAYER, Some(&exit));
+                let mut result = None;
+                for depth in 1.. {
+                    println!("Trying depth {}", depth);
+                    if let Some(new) = board.minimax(depth, !SIDE_PLAYER, Some(&exit)) {
+                        result = Some(new);
+                    }
+                    if exit.swap(false, Ordering::SeqCst) {
+                        break;
+                    }
+                }
                 tx_reply.send(result).unwrap();
             }
         })
     };
 
     let players_turn = Rc::new(Cell::new(true));
+    let turn_start = Rc::new(Cell::new(None));
 
     let window = Window::new(WindowType::Toplevel);
     window.set_title("Chess Minimax");
@@ -221,11 +232,12 @@ fn main() {
             });
 
             {
-                let grid = grid.clone();
                 let board = Rc::clone(&board);
                 let data = Rc::clone(&data);
-                let tx_move = tx_move.clone();
+                let grid = grid.clone();
                 let players_turn = Rc::clone(&players_turn);
+                let turn_start = Rc::clone(&turn_start);
+                let tx_move = tx_move.clone();
                 let window = window.clone();
                 button.connect_drag_data_received(move |_button, ctx, _x, _y, pos, _info, time| {
                     ctx.drag_finish(true, false, time);
@@ -282,6 +294,7 @@ fn main() {
                         return;
                     }
 
+                    turn_start.set(Some(Instant::now()));
                     tx_move.send((*board).clone()).unwrap();
                 });
             }
@@ -301,6 +314,7 @@ fn main() {
     window.add(&main);
 
     {
+        let exit = Arc::clone(&exit);
         let window = window.clone();
         timeout_add_seconds(1, move || {
             if let Some(result) = rx_reply.try_recv().ok().and_then(|result| result) {
@@ -309,6 +323,7 @@ fn main() {
 
                 redraw(&grid, &board, &data);
                 players_turn.set(true);
+                turn_start.set(None);
 
                 if board.is_checkmate(SIDE_PLAYER) {
                     let dialog = Dialog::new_with_buttons(
@@ -323,6 +338,11 @@ fn main() {
                     dialog.show_all();
                     dialog.run();
                     dialog.destroy();
+                }
+            } else {
+                if turn_start.get().map(|t| t.elapsed() >= Duration::from_secs(TIMEOUT)).unwrap_or(false) {
+                    exit.store(true, Ordering::SeqCst);
+                    turn_start.set(None);
                 }
             }
             Continue(true)
