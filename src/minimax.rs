@@ -1,5 +1,5 @@
 use crate::{
-    board::Board,
+    board::{self, Board},
     piece::PieceKind,
     Pos,
     Side
@@ -18,15 +18,17 @@ impl Board {
     pub fn score(&mut self, side: Side) -> i32 {
         let mut score = 0;
         let mut pieces = self.pieces(side);
-        while let Some(pos) = pieces.next(&self) {
+        while let Some((from, piece)) = pieces.next(&self) {
             // Material score
-            let piece = self.get(pos).unwrap();
             score += piece.kind.worth() as i32 * 100;
 
             // Prioritize moves that reach a lot of position
-            let mut moves = self.moves_for(pos);
-            while moves.next(self).is_some() {
-                score += 1;
+            // Don't check castlings simply because that's slow
+            let mut moves = self.moves_for_filter(from, |m| !board::is_castling(piece, m));
+            while let Some(to) = moves.next(self) {
+                if self.get(to).is_some() {
+                    score += 1;
+                }
             }
         }
         score
@@ -50,7 +52,7 @@ impl Board {
         let mut best: Option<MinimaxResult> = None;
 
         let mut pieces = self.pieces(player);
-        'outer: while let Some(from) = pieces.next(self) {
+        'outer: while let Some((from, _)) = pieces.next(self) {
             let mut moves = self.moves_for(from);
             while let Some(to) = moves.next(self) {
                 let game_over = if maximizing { 99999 + depth as i32 } else { -99999 - depth as i32 };
