@@ -22,10 +22,14 @@ use gtk::{
     Button,
     CssProvider,
     DestDefaults,
+    Dialog,
+    DialogFlags,
     Grid,
     Image,
+    Label,
     LinkButton,
     Orientation,
+    ResponseType,
     StyleContext,
     TargetEntry,
     TargetFlags,
@@ -222,6 +226,7 @@ fn main() {
                 let data = Rc::clone(&data);
                 let tx_move = tx_move.clone();
                 let players_turn = Rc::clone(&players_turn);
+                let window = window.clone();
                 button.connect_drag_data_received(move |_button, ctx, _x, _y, pos, _info, time| {
                     ctx.drag_finish(true, false, time);
 
@@ -257,8 +262,25 @@ fn main() {
                         return;
                     }
 
-                    redraw(&grid, &board, &data);
                     players_turn.set(false);
+
+                    redraw(&grid, &board, &data);
+
+                    if board.is_checkmate(!SIDE_PLAYER) {
+                        let dialog = Dialog::new_with_buttons(
+                            Some("Checkmate!"),
+                            Some(&window),
+                            DialogFlags::MODAL | DialogFlags::DESTROY_WITH_PARENT,
+                            &[
+                                ("Ok", ResponseType::Ok.into())
+                            ]
+                        );
+                        dialog.get_content_area().add(&Label::new("You won!"));
+                        dialog.show_all();
+                        dialog.run();
+                        dialog.destroy();
+                        return;
+                    }
 
                     tx_move.send((*board).clone()).unwrap();
                 });
@@ -278,16 +300,34 @@ fn main() {
     main.add(&attribution);
     window.add(&main);
 
-    timeout_add_seconds(1, move || {
-        if let Some(result) = rx_reply.try_recv().ok().and_then(|result| result) {
-            let mut board = board.borrow_mut();
-            board.move_(result.from, result.to);
+    {
+        let window = window.clone();
+        timeout_add_seconds(1, move || {
+            if let Some(result) = rx_reply.try_recv().ok().and_then(|result| result) {
+                let mut board = board.borrow_mut();
+                board.move_(result.from, result.to);
 
-            redraw(&grid, &board, &data);
-            players_turn.set(true);
-        }
-        Continue(true)
-    });
+                redraw(&grid, &board, &data);
+                players_turn.set(true);
+
+                if board.is_checkmate(SIDE_PLAYER) {
+                    let dialog = Dialog::new_with_buttons(
+                        Some("Checkmate!"),
+                        Some(&window),
+                        DialogFlags::MODAL | DialogFlags::DESTROY_WITH_PARENT,
+                        &[
+                            ("Ok", ResponseType::Ok.into())
+                        ]
+                    );
+                    dialog.get_content_area().add(&Label::new("You lost!"));
+                    dialog.show_all();
+                    dialog.run();
+                    dialog.destroy();
+                }
+            }
+            Continue(true)
+        });
+    }
 
     window.show_all();
     gtk::main();
