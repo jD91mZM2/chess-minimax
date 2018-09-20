@@ -166,7 +166,7 @@ impl<W: Write> Session<W> {
                 expect!(args.is_empty(), "all");
 
                 let mut pieces = self.board.pieces(self.side);
-                while let Some(pos) = pieces.next(&self.board) {
+                while let Some((pos, _)) = pieces.next(&self.board) {
                     self.possible(pos)?;
                 }
             },
