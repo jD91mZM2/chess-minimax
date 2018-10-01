@@ -192,7 +192,7 @@ impl<W: Write> Session<W> {
 
                 let undo = self.board.move_(from, to);
                 if !force {
-                    if let Some(pos) = self.board.check(self.side) {
+                    if let Some(pos) = self.board.check(!self.side) {
                         self.board.undo(undo);
                         self.highlight.insert(pos);
                         println!("can't place yourself in check!");
@@ -232,7 +232,7 @@ impl<W: Write> Session<W> {
                         let side = self.side;
                         let mut board = self.board.clone();
                         let exit = Arc::clone(&exit);
-                        thread::spawn(move || -> Result<_, io::Error> {
+                        thread::spawn(move || -> io::Result<_> {
                             let mut res = None;
                             for i in DEPTH - 3.. {
                                 writeln!(io::stdout(), "Trying depth {}...", i)?;
