@@ -4,7 +4,10 @@ use crate::{
     Pos,
     Side,
 };
-use std::mem;
+use std::{
+    collections::HashSet,
+    mem
+};
 
 pub type Change = ArrayVec<[Undo; 6]>;
 
@@ -176,15 +179,12 @@ impl Board {
                         && self.get(Pos(WIDTH-2, row)).is_none()
                         && self.get(Pos(WIDTH-3, row)).is_none()
                 };
-                if !empty || self.check(piece.side).is_some() {
+                if !empty {
                     return false;
                 }
-                for i in 0..2 {
-                    let pos = from + Pos(rel_x / (2-i), 0);
-                    let undo = self.move_(from, pos);
-                    let check = self.check(piece.side).is_some();
-                    self.undo(undo);
-                    if check {
+                let threatened = self.threatens(!piece.side);
+                for i in 0..3 {
+                    if threatened.contains(&Pos(from_x + rel_x.signum() * i, row)) {
                         return false;
                     }
                 }
@@ -339,12 +339,27 @@ impl Board {
         }
     }
 
+    /// Return all tiles that are threatened (even if no piece is there) by the
+    /// specified side
+    pub fn threatens(&mut self, side: Side) -> HashSet<Pos> {
+        let mut set = HashSet::new();
+        let mut pieces = self.pieces(side);
+        while let Some((from, piece)) = pieces.next(self) {
+            // Prevent infinite loop:
+            // Castling detects if threatened, threatened can't check if castling is possible
+            let mut moves = self.moves_for_filter(from, |m| !is_castling(piece, m));
+
+            while let Some(to) = moves.next(self) {
+                set.insert(to);
+            }
+        }
+        set
+    }
     /// Return whatever piece is threatening the specified side's king, if any
     pub fn check(&mut self, side: Side) -> Option<Pos> {
         let mut pieces = self.pieces(!side);
         while let Some((from, piece)) = pieces.next(self) {
-            // Prevent infinite loop:
-            // Castling detects if in check, check detects if can do castling
+            // Castling can't consume any pieces
             let mut moves = self.moves_for_filter(from, |m| !is_castling(piece, m));
 
             while let Some(to) = moves.next(self) {

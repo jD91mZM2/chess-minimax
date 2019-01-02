@@ -69,7 +69,7 @@ impl<W: Write> Session<W> {
                 Box::new(self.board.iter().enumerate().rev())
             }
         };
-        writeln!(self.out, "{}", RESET);
+        writeln!(self.out, "{}", RESET)?;
         for (y, row) in iter {
             write!(self.out, "{}{}{}{}{} ", BOLD, RED_FG, 8-y, RESET, BOLD)?;
             let iter: Box<Iterator<Item = _>> = match self.side {
@@ -105,7 +105,7 @@ impl<W: Write> Session<W> {
             save, \
             score, \
             undo\
-            {}", ITALIC, RESET);
+            {}", ITALIC, RESET)?;
 
         Ok(())
     }
