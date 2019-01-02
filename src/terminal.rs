@@ -17,7 +17,7 @@ use std::{
 };
 
 const BOARD_FILE: &'static str = "saved_board";
-const DEPTH: u8 = 7;
+const DEPTH: u8 = 5;
 
 // Not using termion because I REALLY want to be able to use this front-end in
 // WASM.
@@ -69,7 +69,7 @@ impl<W: Write> Session<W> {
                 Box::new(self.board.iter().enumerate().rev())
             }
         };
-        writeln!(self.out, "{}", RESET);
+        writeln!(self.out, "{}", RESET)?;
         for (y, row) in iter {
             write!(self.out, "{}{}{}{}{} ", BOLD, RED_FG, 8-y, RESET, BOLD)?;
             let iter: Box<Iterator<Item = _>> = match self.side {
@@ -105,7 +105,7 @@ impl<W: Write> Session<W> {
             save, \
             score, \
             undo\
-            {}", ITALIC, RESET);
+            {}", ITALIC, RESET)?;
 
         Ok(())
     }
@@ -166,7 +166,7 @@ impl<W: Write> Session<W> {
                 expect!(args.is_empty(), "all");
 
                 let mut pieces = self.board.pieces(self.side);
-                while let Some(pos) = pieces.next(&self.board) {
+                while let Some((pos, _)) = pieces.next(&self.board) {
                     self.possible(pos)?;
                 }
             },
@@ -192,7 +192,7 @@ impl<W: Write> Session<W> {
 
                 let undo = self.board.move_(from, to);
                 if !force {
-                    if let Some(pos) = self.board.check(self.side) {
+                    if let Some(pos) = self.board.check(!self.side) {
                         self.board.undo(undo);
                         self.highlight.insert(pos);
                         println!("can't place yourself in check!");
@@ -232,7 +232,7 @@ impl<W: Write> Session<W> {
                         let side = self.side;
                         let mut board = self.board.clone();
                         let exit = Arc::clone(&exit);
-                        thread::spawn(move || -> Result<_, io::Error> {
+                        thread::spawn(move || -> io::Result<_> {
                             let mut res = None;
                             for i in DEPTH - 3.. {
                                 writeln!(io::stdout(), "Trying depth {}...", i)?;

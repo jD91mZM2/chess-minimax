@@ -4,7 +4,10 @@ use crate::{
     Pos,
     Side,
 };
-use std::mem;
+use std::{
+    collections::HashSet,
+    mem
+};
 
 pub type Change = ArrayVec<[Undo; 6]>;
 
@@ -34,16 +37,15 @@ impl Default for Castling {
 /// The width (and height, because square) of the board
 pub const WIDTH: i8 = 8;
 
-fn edge_offset(side: Side, y: i8) -> i8 {
+pub(crate) fn edge_offset(side: Side, y: i8) -> i8 {
     match side {
         Side::Black => y,
         Side::White => (WIDTH - 1) - y
     }
 }
-fn is_castling(piece: Option<Piece>, m: Pos) -> bool {
+pub(crate) fn is_castling(piece: Piece, m: Pos) -> bool {
     let Pos(rel_x, _) = m;
-    piece.map(|p| p.kind == PieceKind::King).unwrap_or(false)
-        && rel_x.abs() == 2
+    piece.kind == PieceKind::King && rel_x.abs() == 2
 }
 
 /// A typical chess board
@@ -177,15 +179,12 @@ impl Board {
                         && self.get(Pos(WIDTH-2, row)).is_none()
                         && self.get(Pos(WIDTH-3, row)).is_none()
                 };
-                if !empty || self.check(piece.side).is_some() {
+                if !empty {
                     return false;
                 }
-                for i in 0..2 {
-                    let pos = from + Pos(rel_x / (2-i), 0);
-                    let undo = self.move_(from, pos);
-                    let check = self.check(piece.side).is_some();
-                    self.undo(undo);
-                    if check {
+                let threatened = self.threatens(!piece.side);
+                for i in 0..3 {
+                    if threatened.contains(&Pos(from_x + rel_x.signum() * i, row)) {
                         return false;
                     }
                 }
@@ -340,25 +339,27 @@ impl Board {
         }
     }
 
-    /// Calculate the total score for a certain side
-    pub fn score(&self, side: Side) -> i16 {
-        let mut score = 0;
+    /// Return all tiles that are threatened (even if no piece is there) by the
+    /// specified side
+    pub fn threatens(&mut self, side: Side) -> HashSet<Pos> {
+        let mut set = HashSet::new();
         let mut pieces = self.pieces(side);
-        while let Some(pos) = pieces.next(&self) {
-            let piece = self.get(pos).unwrap();
-            score += piece.kind.worth() as i16;
-        }
-        score
-    }
+        while let Some((from, piece)) = pieces.next(self) {
+            // Prevent infinite loop:
+            // Castling detects if threatened, threatened can't check if castling is possible
+            let mut moves = self.moves_for_filter(from, |m| !is_castling(piece, m));
 
+            while let Some(to) = moves.next(self) {
+                set.insert(to);
+            }
+        }
+        set
+    }
     /// Return whatever piece is threatening the specified side's king, if any
     pub fn check(&mut self, side: Side) -> Option<Pos> {
         let mut pieces = self.pieces(!side);
-        while let Some(from) = pieces.next(self) {
-            let piece = self.get(from);
-
-            // Prevent infinite loop:
-            // Castling detects if in check, check detects if can do castling
+        while let Some((from, piece)) = pieces.next(self) {
+            // Castling can't consume any pieces
             let mut moves = self.moves_for_filter(from, |m| !is_castling(piece, m));
 
             while let Some(to) = moves.next(self) {
@@ -373,7 +374,7 @@ impl Board {
     /// Returns true if the specified side cannot make a move that's not in check
     pub fn is_checkmate(&mut self, side: Side) -> bool {
         let mut pieces = self.pieces(side);
-        while let Some(from) = pieces.next(self) {
+        while let Some((from, _)) = pieces.next(self) {
             let mut moves = self.moves_for(from);
             while let Some(to) = moves.next(self) {
                 let undo = self.move_(from, to);
@@ -406,24 +407,26 @@ pub struct PieceIter {
 }
 impl PieceIter {
     /// Gets the next position of a piece in the "iterator"
-    pub fn next(&mut self, board: &Board) -> Option<Pos> {
+    pub fn next(&mut self, board: &Board) -> Option<(Pos, Piece)> {
         if !self.pos.is_valid() {
             return None;
         }
         let mut pos;
+        let mut piece;
         loop {
             pos = self.pos;
             if !pos.is_valid() {
                 return None;
             }
+            piece = board.get(pos);
 
             self.pos = pos.next();
 
-            if board.get(pos).map(|p| p.side == self.side).unwrap_or(false) {
+            if piece.map(|p| p.side == self.side).unwrap_or(false) {
                 break;
             }
         }
-        Some(pos)
+        Some((pos, piece.unwrap()))
     }
 }
 
